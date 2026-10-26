@@ -269,6 +269,10 @@ const REFERENCE_EXCEL_STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standal
  *  - Row 4+ (A4:R...): Blue (#8DB4E2) fill — Passenger rows
  */
 export function downloadExcelManifest(segment, passengers = []) {
+  // Only export passengers from issued tickets (if BookingStatus is provided)
+  const issuedPassengers = (passengers || []).filter(
+    (p) => !p.BookingStatus || p.BookingStatus === 'Ticket Issued'
+  );
   const depIata = (segment?.DepartureIata || 'KHI').toUpperCase();
   const arrIata = (segment?.ArrivalIata || 'IKA').toUpperCase();
   const dateToken = formatDDMMMYY(segment?.DepartureDate, '27OCT26');
@@ -368,7 +372,7 @@ export function downloadExcelManifest(segment, passengers = []) {
   );
 
   // Row 4+: Blue passenger rows -> s="5" (and s="6" when blank, both #8DB4E2 blue fill)
-  passengers.forEach((p, idx) => {
+  issuedPassengers.forEach((p, idx) => {
     const rowNum = 4 + idx;
     const ageType =
       p.PassengerType === 'Infant' ? 'I' : p.PassengerType === 'Child' ? 'C' : 'A';
@@ -439,7 +443,7 @@ export function downloadExcelManifest(segment, passengers = []) {
     );
   });
 
-  const lastRow = Math.max(3 + passengers.length, 3);
+  const lastRow = Math.max(3 + issuedPassengers.length, 3);
   const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:R${lastRow}"/><sheetViews><sheetView tabSelected="1" workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="13.2"/><cols><col min="1" max="1" width="5.109375" customWidth="1"/><col min="2" max="2" width="7.6640625" customWidth="1"/><col min="3" max="3" width="15.44140625" customWidth="1"/><col min="4" max="4" width="11.5546875" customWidth="1"/><col min="5" max="6" width="18" customWidth="1"/><col min="7" max="7" width="30.6640625" bestFit="1" customWidth="1"/><col min="8" max="8" width="18" customWidth="1"/><col min="9" max="12" width="11.5546875" customWidth="1"/><col min="13" max="14" width="7.6640625" customWidth="1"/><col min="15" max="15" width="10.21875" customWidth="1"/><col min="16" max="16" width="12.88671875" customWidth="1"/><col min="17" max="17" width="18" customWidth="1"/><col min="18" max="18" width="9" customWidth="1"/></cols><sheetData>${xmlRows.join(
     ''
@@ -495,6 +499,10 @@ export const downloadExcelPassengersList = downloadExcelManifest;
  *   ENDPNL
  */
 export function downloadWordManifest(segment, passengers = []) {
+  // Only export passengers from issued tickets (if BookingStatus is provided)
+  const issuedPassengers = (passengers || []).filter(
+    (p) => !p.BookingStatus || p.BookingStatus === 'Ticket Issued'
+  );
   const depIata = (segment?.DepartureIata || 'KHI').toUpperCase();
   const arrIata = (segment?.ArrivalIata || 'IKA').toUpperCase();
   const dateTokenFull = formatDDMMMYY(segment?.DepartureDate, '27OCT26');
@@ -504,8 +512,8 @@ export function downloadWordManifest(segment, passengers = []) {
 
   const filename = `IATA-Manifest-${flightDigits} ${depIata} ${arrIata} ${dateTokenFull}.docx`;
 
-  const adultChildCount = passengers.filter((p) => p.PassengerType !== 'Infant').length;
-  const infantCount = passengers.filter((p) => p.PassengerType === 'Infant').length;
+  const adultChildCount = issuedPassengers.filter((p) => p.PassengerType !== 'Infant').length;
+  const infantCount = issuedPassengers.filter((p) => p.PassengerType === 'Infant').length;
   const countToken =
     infantCount > 0
       ? `-${arrIata}${adultChildCount}+${infantCount}${cabinCode}`
@@ -533,7 +541,7 @@ export function downloadWordManifest(segment, passengers = []) {
   addLine(`${carrierCode}${flightDigits}/${dateTokenShort} ${depIata} PART1`);
   addLine(countToken);
 
-  passengers.forEach((p, idx) => {
+  issuedPassengers.forEach((p, idx) => {
     // Strip spaces inside names just like 1SYEDTAHIR/HUSSAINZEHRA MR
     const cleanFirst = (p.FirstName || 'GUEST').toUpperCase().replace(/\s+/g, '');
     const cleanLast = (p.LastName || 'PAX').toUpperCase().replace(/\s+/g, '');

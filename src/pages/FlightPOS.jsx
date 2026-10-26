@@ -20,7 +20,7 @@ import {
   Trash2,
   Printer
 } from 'lucide-react';
-import { usePortal } from '../context/PortalContext';
+import { usePortal, calculateSegmentPassengerTotal } from '../context/PortalContext';
 import { formatCurrencyPKR, formatDateTime, formatShortDate } from '../utils/exporters';
 import TicketPrintModal from '../components/TicketPrintModal';
 
@@ -76,10 +76,10 @@ export default function FlightPOS() {
   useEffect(() => {
     if (isSubAgent && user?.SubCompanyID) {
       setSelectedAgentId(user.SubCompanyID);
-    } else if (selectedAgentId === 'DIRECT' && subAgents.length > 0) {
-      setSelectedAgentId(subAgents[0].SubCompanyID);
+    } else if (!isSubAgent) {
+      setSelectedAgentId('DIRECT');
     }
-  }, [subAgents, selectedAgentId, isSubAgent, user]);
+  }, [isSubAgent, user]);
 
   const selectedAgent = useMemo(
     () => subAgents.find((a) => a.SubCompanyID === selectedAgentId) || null,
@@ -383,16 +383,19 @@ export default function FlightPOS() {
     const adt = Number(adultsCount) || 0;
     const cnn = Number(childrenCount) || 0;
     const inf = Number(infantsCount) || 0;
+    const isRT = tripType === 'Round Trip';
 
     let adtUnit = 0;
     let cnnUnit = 0;
     let infUnit = 0;
+    let grandTotal = 0;
 
     selectedSegments.forEach((seg) => {
       const fares = getSegmentUnitFares(seg);
       adtUnit += fares.adt;
       cnnUnit += fares.cnn;
       infUnit += fares.inf;
+      grandTotal += calculateSegmentPassengerTotal(seg, adt, cnn, inf, isRT);
     });
 
     const adtTotal = adt * adtUnit;
@@ -409,7 +412,7 @@ export default function FlightPOS() {
       adtTotal,
       cnnTotal,
       infTotal,
-      grandTotal: adtTotal + cnnTotal + infTotal
+      grandTotal
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSegments, adultsCount, childrenCount, infantsCount, tripType]);
@@ -902,11 +905,11 @@ export default function FlightPOS() {
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-100">
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
-                  BOOKING AGENCY / SUB-AGENT
-                </label>
-                {isSubAgent ? (
+              {isSubAgent && (
+                <div className="pt-2 border-t border-slate-100">
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                    BOOKING AGENCY / SUB-AGENT
+                  </label>
                   <div className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-100 text-xs font-semibold text-[#1B3664] flex items-center justify-between">
                     <span className="truncate">{user?.SubCompanyName || 'Sub Agent'}</span>
                     {selectedAgent && (
@@ -915,28 +918,8 @@ export default function FlightPOS() {
                       </span>
                     )}
                   </div>
-                ) : (
-                  <select
-                    value={selectedAgentId}
-                    onChange={(e) => {
-                      setSelectedAgentId(e.target.value);
-                      const ag = subAgents.find((a) => a.SubCompanyID === e.target.value);
-                      if (ag) {
-                        setEmail(ag.Email || '');
-                        setMobile(ag.MobileNumber || '');
-                      }
-                    }}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 focus:border-[#1B3664] focus:outline-none"
-                  >
-                    <option value="DIRECT">Bookly Direct Desk (Admin)</option>
-                    {subAgents.map((a) => (
-                      <option key={a.SubCompanyID} value={a.SubCompanyID}>
-                        {a.CompanyName} ({a.City}) — Bal: {formatCurrencyPKR(a.CreditLimitBalance)}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1056,10 +1039,13 @@ export default function FlightPOS() {
                   tripType === 'Multi City' ? getMatchingMultiLegIndices(seg) : [];
                 const seatsLeft = Number(seg.SeatsLeft ?? seg.TotalSeats) || 0;
                 const unitFares = getSegmentUnitFares(seg);
-                const estTotalForSeg =
-                  Number(adultsCount) * unitFares.adt +
-                  Number(childrenCount) * unitFares.cnn +
-                  Number(infantsCount) * unitFares.inf;
+                const estTotalForSeg = calculateSegmentPassengerTotal(
+                  seg,
+                  adultsCount,
+                  childrenCount,
+                  infantsCount,
+                  tripType === 'Round Trip'
+                );
 
                 const adtBag = seg.BaggageADT ?? seg.BaggageCountADT ?? '20';
                 const cnnBag = seg.BaggageCNN ?? seg.BaggageCountCNN ?? '20';
@@ -1141,6 +1127,11 @@ export default function FlightPOS() {
                         <span className="text-[10px] font-semibold text-emerald-700">
                           {seatsLeft} Seats Left
                         </span>
+                        {seg.HasTiers && (
+                          <span className="text-[10px] font-semibold text-[#1B3664] mt-0.5">
+                            Slab {seg.ActiveTier}: {seg.ActiveTierSeatsLeft} left at this fare
+                          </span>
+                        )}
                       </div>
 
                       <div className="text-right">

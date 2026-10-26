@@ -408,7 +408,8 @@ export default function TicketPrintModal({ booking, onClose }) {
               style={{
                 border: '1px solid #e2e8f0',
                 borderRadius: '6px',
-                padding: '16px'
+                padding: '16px',
+                marginBottom: '18px'
               }}
             >
               <div
@@ -484,6 +485,136 @@ export default function TicketPrintModal({ booking, onClose }) {
                 </div>
               </div>
             </div>
+
+            {/* FOR ANY ASSISTANCE PLEASE CONTACT OUR OFFICE (Agent / Office Contact Box) */}
+            {(() => {
+              const agent = booking.AgentDetails;
+              const contactHeading = (
+                agent?.ContactPerson ||
+                booking.SubCompanyName ||
+                'MAIN CONTROLLER'
+              )
+                .toString()
+                .toUpperCase();
+
+              const officeLine = agent
+                ? [
+                    agent.Address ? agent.Address.trim() : '',
+                    agent.CompanyName ? agent.CompanyName.trim() : '',
+                    agent.City ? agent.City.trim() : ''
+                  ]
+                    .filter(Boolean)
+                    .join(' - ')
+                    .toUpperCase()
+                : (booking.SubCompanyName || 'OFFICE 102-SKY BRIDGE AVIATION LAHORE').toUpperCase();
+
+              const phoneVal =
+                agent?.Phone || booking.MobileNumber || '+92 318 9515315';
+              const emailVal = (
+                agent?.Email ||
+                booking.EmailAddress ||
+                'BOOKINGS@BOOKLY.COM'
+              )
+                .toString()
+                .toUpperCase();
+
+              return (
+                <div
+                  style={{
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '4px',
+                    backgroundColor: '#ffffff',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: '12px 20px',
+                      borderBottom: '1px solid #cbd5e1',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: '#334155',
+                      letterSpacing: '0.2px',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    FOR ANY ASSISTANCE PLEASE CONTACT OUR OFFICE
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '34px',
+                      padding: '20px 28px'
+                    }}
+                  >
+                    {/* Support Agent With Headset Icon */}
+                    <div style={{ flexShrink: 0 }}>
+                      <svg
+                        width="72"
+                        height="72"
+                        viewBox="0 0 80 80"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        {/* Headset Band */}
+                        <path
+                          d="M20 36C20 24.402 28.9543 15 40 15C51.0457 15 60 24.402 60 36"
+                          stroke="#2563EB"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                        />
+                        {/* Head */}
+                        <ellipse cx="40" cy="36" rx="13" ry="15" fill="#334155" />
+                        {/* Left & Right Ear Cups */}
+                        <rect x="16" y="31" width="6" height="13" rx="3" fill="#2563EB" />
+                        <rect x="58" y="31" width="6" height="13" rx="3" fill="#2563EB" />
+                        {/* Microphone Boom */}
+                        <path
+                          d="M21 42C21 46.5 29 47.5 38 47.5"
+                          stroke="#ffffff"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d="M20 42C20 46.5 28 47.5 38 47.5"
+                          stroke="#334155"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                        />
+                        <circle cx="39" cy="47.5" r="2.2" fill="#ffffff" />
+                        {/* Suit & Shoulders */}
+                        <path
+                          d="M15 70C15 58.5 25 53 40 53C55 53 65 58.5 65 70H15Z"
+                          fill="#334155"
+                        />
+                        {/* White Shirt V-Neck */}
+                        <path d="M32 53L40 69L48 53H32Z" fill="#ffffff" />
+                        {/* Blue Tie */}
+                        <path d="M38 55H42L41.2 60L42.5 68L40 70L37.5 68L38.8 60L38 55Z" fill="#2563EB" />
+                      </svg>
+                    </div>
+
+                    {/* Contact Details */}
+                    <div style={{ fontSize: '13.5px', lineHeight: '1.85', color: '#1e293b' }}>
+                      <div style={{ fontWeight: 700, textTransform: 'uppercase' }}>
+                        {contactHeading}
+                      </div>
+                      <div style={{ textTransform: 'uppercase', color: '#334155' }}>
+                        {officeLine}
+                      </div>
+                      <div>
+                        <span style={{ fontWeight: 700 }}>PHONE:</span> {phoneVal}
+                      </div>
+                      <div>
+                        <span style={{ fontWeight: 700 }}>EMAIL:</span> {emailVal}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>

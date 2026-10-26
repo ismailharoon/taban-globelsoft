@@ -48,12 +48,103 @@ function loadLocalDb() {
   return fresh;
 }
 
+export function calculateSegmentPassengerTotal(
+  seg,
+  adults = 1,
+  children = 0,
+  infants = 0,
+  isRoundTrip = false
+) {
+  if (!seg) return { adtTotal: 0, cnnTotal: 0, infTotal: 0, total: 0, adtUnit: 0, cnnUnit: 0, infUnit: 0 };
+
+  const adtCount = Number(adults) || 0;
+  const cnnCount = Number(children) || 0;
+  const infCount = Number(infants) || 0;
+
+  const t1 = Number(seg.Tier1Seats) || 0;
+  const t2 = Number(seg.Tier2Seats) || 0;
+  const t3 = Number(seg.Tier3Seats) || 0;
+  const hasTiers = t1 + t2 + t3 > 0;
+
+  const getTierFares = (tierNum) => {
+    if (!hasTiers) {
+      const adt =
+        isRoundTrip && Number(seg.ReturnAdultPrice) > 0
+          ? Number(seg.ReturnAdultPrice)
+          : Number(seg.AdultPrice) || 0;
+      const cnn =
+        isRoundTrip && Number(seg.ReturnChildPrice) > 0
+          ? Number(seg.ReturnChildPrice)
+          : Number(seg.ChildPrice) || 0;
+      const inf =
+        isRoundTrip && Number(seg.ReturnInfantPrice) > 0
+          ? Number(seg.ReturnInfantPrice)
+          : Number(seg.InfantPrice) || 0;
+      return { adt, cnn, inf };
+    }
+    const prefix = `Tier${tierNum}`;
+    const oneWayAdt = Number(seg[`${prefix}AdultPrice`] ?? seg.AdultPrice) || 0;
+    const oneWayCnn = Number(seg[`${prefix}ChildPrice`] ?? seg.ChildPrice) || 0;
+    const oneWayInf = Number(seg[`${prefix}InfantPrice`] ?? seg.InfantPrice) || 0;
+
+    const retAdt = Number(seg[`${prefix}ReturnAdultPrice`] ?? seg.ReturnAdultPrice) || 0;
+    const retCnn = Number(seg[`${prefix}ReturnChildPrice`] ?? seg.ReturnChildPrice) || 0;
+    const retInf = Number(seg[`${prefix}ReturnInfantPrice`] ?? seg.ReturnInfantPrice) || 0;
+
+    return {
+      adt: isRoundTrip && retAdt > 0 ? retAdt : oneWayAdt,
+      cnn: isRoundTrip && retCnn > 0 ? retCnn : oneWayCnn,
+      inf: isRoundTrip && retInf > 0 ? retInf : oneWayInf
+    };
+  };
+
+  const getTierForSeatIndex = (seatIdx) => {
+    if (!hasTiers) return 1;
+    if (t1 > 0 && seatIdx < t1) return 1;
+    if (t2 > 0 && seatIdx < t1 + t2) return 2;
+    return 3;
+  };
+
+  const startBooked = Number(seg.BookedSeats) || 0;
+  let seatCursor = startBooked;
+
+  let adtTotal = 0;
+  for (let i = 0; i < adtCount; i++) {
+    const tier = getTierForSeatIndex(seatCursor);
+    adtTotal += getTierFares(tier).adt;
+    seatCursor++;
+  }
+
+  let cnnTotal = 0;
+  for (let i = 0; i < cnnCount; i++) {
+    const tier = getTierForSeatIndex(seatCursor);
+    cnnTotal += getTierFares(tier).cnn;
+    seatCursor++;
+  }
+
+  const activeTier = getTierForSeatIndex(startBooked);
+  const activeFares = getTierFares(activeTier);
+  const infTotal = infCount * activeFares.inf;
+
+  return {
+    adtTotal,
+    cnnTotal,
+    infTotal,
+    total: adtTotal + cnnTotal + infTotal,
+    adtUnit: adtCount > 0 ? Math.round(adtTotal / adtCount) : activeFares.adt,
+    cnnUnit: cnnCount > 0 ? Math.round(cnnTotal / cnnCount) : activeFares.cnn,
+    infUnit: activeFares.inf
+  };
+}
+
 function computeEnriched(db) {
   const rawSegments = db.segments || [];
   const rawFlights = db.flights || [];
   const rawBookings = db.bookings || [];
+  const rawSubAgents = db.subAgents || [];
 
   const flightsById = Object.fromEntries(rawFlights.map((f) => [f.AirGroupID, f]));
+  const agentsById = Object.fromEntries(rawSubAgents.map((a) => [a.SubCompanyID, a]));
 
   // Calculate booked seats per segment across both direct segment bookings and group flight bookings
   const segments = rawSegments.map((s) => {
@@ -78,14 +169,77 @@ function computeEnriched(db) {
       (sum, b) => sum + (Number(b.AdultCount) || 0) + (Number(b.ChildCount) || 0),
       0
     );
-    const totalSeats = Number(s.TotalSeats) || 0;
+
+    const t1Seats = Number(s.Tier1Seats) || 0;
+    const t2Seats = Number(s.Tier2Seats) || 0;
+    const t3Seats = Number(s.Tier3Seats) || 0;
+    const hasTiers = t1Seats + t2Seats + t3Seats > 0;
+
+    const totalSeats = hasTiers ? t1Seats + t2Seats + t3Seats : Number(s.TotalSeats) || 0;
     const seatsLeft = Math.max(0, totalSeats - bookedSeats);
+
+    const tier1Left = Math.max(0, t1Seats - bookedSeats);
+    const tier2Left = Math.max(0, Math.min(t2Seats, t1Seats + t2Seats - bookedSeats));
+    const tier3Left = Math.max(0, Math.min(t3Seats, t1Seats + t2Seats + t3Seats - bookedSeats));
+
+    let activeTier = 1;
+    let activeTierSeatsLeft = seatsLeft;
+    let adultPrice = Number(s.AdultPrice) || 0;
+    let childPrice = Number(s.ChildPrice) || 0;
+    let infantPrice = Number(s.InfantPrice) || 0;
+    let returnAdultPrice = Number(s.ReturnAdultPrice) || 0;
+    let returnChildPrice = Number(s.ReturnChildPrice) || 0;
+    let returnInfantPrice = Number(s.ReturnInfantPrice) || 0;
+
+    if (hasTiers) {
+      if (t1Seats > 0 && bookedSeats < t1Seats) {
+        activeTier = 1;
+        activeTierSeatsLeft = tier1Left;
+        adultPrice = Number(s.Tier1AdultPrice ?? s.AdultPrice) || 0;
+        childPrice = Number(s.Tier1ChildPrice ?? s.ChildPrice) || 0;
+        infantPrice = Number(s.Tier1InfantPrice ?? s.InfantPrice) || 0;
+        returnAdultPrice = Number(s.Tier1ReturnAdultPrice ?? s.ReturnAdultPrice) || 0;
+        returnChildPrice = Number(s.Tier1ReturnChildPrice ?? s.ReturnChildPrice) || 0;
+        returnInfantPrice = Number(s.Tier1ReturnInfantPrice ?? s.ReturnInfantPrice) || 0;
+      } else if (t2Seats > 0 && bookedSeats < t1Seats + t2Seats) {
+        activeTier = 2;
+        activeTierSeatsLeft = tier2Left;
+        adultPrice = Number(s.Tier2AdultPrice ?? s.AdultPrice) || 0;
+        childPrice = Number(s.Tier2ChildPrice ?? s.ChildPrice) || 0;
+        infantPrice = Number(s.Tier2InfantPrice ?? s.InfantPrice) || 0;
+        returnAdultPrice = Number(s.Tier2ReturnAdultPrice ?? s.ReturnAdultPrice) || 0;
+        returnChildPrice = Number(s.Tier2ReturnChildPrice ?? s.ReturnChildPrice) || 0;
+        returnInfantPrice = Number(s.Tier2ReturnInfantPrice ?? s.ReturnInfantPrice) || 0;
+      } else {
+        activeTier = 3;
+        activeTierSeatsLeft = tier3Left;
+        adultPrice = Number(s.Tier3AdultPrice ?? s.AdultPrice) || 0;
+        childPrice = Number(s.Tier3ChildPrice ?? s.ChildPrice) || 0;
+        infantPrice = Number(s.Tier3InfantPrice ?? s.InfantPrice) || 0;
+        returnAdultPrice = Number(s.Tier3ReturnAdultPrice ?? s.ReturnAdultPrice) || 0;
+        returnChildPrice = Number(s.Tier3ReturnChildPrice ?? s.ReturnChildPrice) || 0;
+        returnInfantPrice = Number(s.Tier3ReturnInfantPrice ?? s.ReturnInfantPrice) || 0;
+      }
+    }
 
     return {
       ...s,
+      TotalSeats: totalSeats,
       BookedSeats: bookedSeats,
       SeatsLeft: seatsLeft,
-      AvailableSeats: seatsLeft
+      AvailableSeats: seatsLeft,
+      HasTiers: hasTiers,
+      ActiveTier: activeTier,
+      ActiveTierSeatsLeft: activeTierSeatsLeft,
+      Tier1Left: tier1Left,
+      Tier2Left: tier2Left,
+      Tier3Left: tier3Left,
+      AdultPrice: adultPrice,
+      ChildPrice: childPrice,
+      InfantPrice: infantPrice,
+      ReturnAdultPrice: returnAdultPrice,
+      ReturnChildPrice: returnChildPrice,
+      ReturnInfantPrice: returnInfantPrice
     };
   });
 
@@ -148,12 +302,34 @@ function computeEnriched(db) {
           : `${firstSeg.FlightNumber} • ${firstSeg.DepartureIata} → ${firstSeg.ArrivalIata}`
         : 'Flight Booking';
 
+    const agentObj = b.SubCompanyID ? agentsById[b.SubCompanyID] : null;
+    const matchedAgentUser = agentObj?.Users?.find(
+      (u) => u.LoginID && b.BookedByLoginID && u.LoginID.toLowerCase() === b.BookedByLoginID.toLowerCase()
+    );
+
+    const agentDetails = agentObj
+      ? {
+          ContactPerson:
+            matchedAgentUser?.Designation ||
+            matchedAgentUser?.FullName ||
+            agentObj.Users?.[0]?.Designation ||
+            agentObj.Users?.[0]?.FullName ||
+            'MAIN CONTROLLER',
+          CompanyName: agentObj.CompanyName || b.SubCompanyName || '',
+          Address: agentObj.Address || '',
+          City: agentObj.City || '',
+          Phone: agentObj.MobileNumber || b.MobileNumber || '',
+          Email: agentObj.Email || b.EmailAddress || ''
+        }
+      : b.AgentDetails || null;
+
     return {
       ...b,
       FlightTitle: b.FlightTitle || (flight ? flight.Title : autoTitle),
       FlightCategory: b.FlightCategory || (flight ? flight.Category : firstSeg?.FlightClass || 'Economy'),
       TripType: b.TripType || (flight ? flight.TripType : resolvedSegments.length > 1 ? 'Round Trip' : 'One Way'),
-      Segments: resolvedSegments
+      Segments: resolvedSegments,
+      AgentDetails: agentDetails
     };
   });
 
@@ -412,7 +588,7 @@ export function PortalProvider({ children }) {
     } = bookingPayload;
 
     const selectedSegments = (SegmentIDs || [])
-      .map((id) => (dbState.segments || []).find((s) => s.AirGroupSegmentID === id))
+      .map((id) => (enriched.segments || []).find((s) => s.AirGroupSegmentID === id))
       .filter(Boolean);
 
     const flight = AirGroupID
@@ -423,10 +599,10 @@ export function PortalProvider({ children }) {
       throw new Error('Please select at least one Flight Segment to book.');
     }
 
-    const effectiveSubCompanyID = isSubAgent ? user.SubCompanyID : SubCompanyID;
+    const effectiveSubCompanyID = isSubAgent ? user.SubCompanyID : 'DIRECT';
 
     const agent =
-      effectiveSubCompanyID && effectiveSubCompanyID !== 'DIRECT'
+      isSubAgent && effectiveSubCompanyID && effectiveSubCompanyID !== 'DIRECT'
         ? (dbState.subAgents || []).find((a) => a.SubCompanyID === effectiveSubCompanyID)
         : null;
 
@@ -447,20 +623,14 @@ export function PortalProvider({ children }) {
     const isRoundTrip = TripType === 'Round Trip';
     if (selectedSegments.length > 0) {
       selectedSegments.forEach((seg) => {
-        const adultFare =
-          isRoundTrip && Number(seg.ReturnAdultPrice) > 0
-            ? Number(seg.ReturnAdultPrice)
-            : Number(seg.AdultPrice) || 0;
-        const childFare =
-          isRoundTrip && Number(seg.ReturnChildPrice) > 0
-            ? Number(seg.ReturnChildPrice)
-            : Number(seg.ChildPrice) || 0;
-        const infantFare =
-          isRoundTrip && Number(seg.ReturnInfantPrice) > 0
-            ? Number(seg.ReturnInfantPrice)
-            : Number(seg.InfantPrice) || 0;
-
-        totalPrice += adults * adultFare + children * childFare + infants * infantFare;
+        const segFare = calculateSegmentPassengerTotal(
+          seg,
+          adults,
+          children,
+          infants,
+          isRoundTrip
+        );
+        totalPrice += segFare.total;
       });
     } else if (flight) {
       totalPrice =

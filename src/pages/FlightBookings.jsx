@@ -25,8 +25,8 @@ import { formatCurrencyPKR, formatDateTime } from '../utils/exporters';
 import TicketPrintModal from '../components/TicketPrintModal';
 
 const STATUS_TABS = [
-  { key: 'All', label: 'All Bookings' },
   { key: 'Pending', label: 'Pending' },
+  { key: 'All', label: 'All Bookings' },
   { key: 'Approved', label: 'Approved' },
   { key: 'Rejected', label: 'Rejected' },
   { key: 'Ticket Issued', label: 'Issued' },
@@ -49,7 +49,7 @@ export default function FlightBookings() {
     addToast
   } = usePortal();
 
-  const [statusFilter, setStatusFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('Pending');
   const [agentFilter, setAgentFilter] = useState('ALL');
   const [searchText, setSearchText] = useState('');
   const [expandedRows, setExpandedRows] = useState({});
