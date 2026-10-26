@@ -835,21 +835,6 @@ export default function SegmentManagement() {
 
               {/* Row 4: 3-Tier Dynamic Seat & Price Division (Runtime Slabs) */}
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
-                  <div>
-                    <div className="text-xs font-bold text-[#1B3664] uppercase tracking-wider">
-                      Dynamic 3-Slab Seat & Fare Allocation (Runtime Pricing)
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      Divide Total Seats ({form.TotalSeats || 0}) into 3 runtime seat slabs. Prices automatically shift to the next tier as seats sell out.
-                    </p>
-                  </div>
-                  <div className="px-2.5 py-1 rounded-lg bg-[#1B3664] text-white font-mono text-[11px] font-semibold">
-                    Total: {Number(form.Tier1Seats || 0)} + {Number(form.Tier2Seats || 0)} + {Number(form.Tier3Seats || 0)} ={' '}
-                    {Number(form.Tier1Seats || 0) + Number(form.Tier2Seats || 0) + Number(form.Tier3Seats || 0)} / {form.TotalSeats || 0} Seats
-                  </div>
-                </div>
-
                 {/* TIER 1: STARTING SEATS */}
                 <div className="p-3 rounded-lg bg-white border border-slate-200 space-y-2.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
