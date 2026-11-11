@@ -41,30 +41,30 @@ export default function Dashboard() {
     const myAgent = subAgents[0] || null;
     const subAgentCards = [
       {
-        title: 'My Bookings',
+        title: 'My Reservations',
         value: bookings.length,
-        subtitle: `${statusCounts.Pending} Pending • ${statusCounts.Issued} Issued`,
+        subtitle: `${statusCounts.Pending} Pending • ${statusCounts.Issued} Ticketed`,
         icon: Ticket,
         variant: 'navy'
       },
       {
-        title: 'Tickets Issued',
+        title: 'Ticketed PNRs',
         value: statusCounts.Issued,
         subtitle: `${statusCounts.Approved} Approved`,
         icon: PlaneTakeoff,
         variant: 'slate'
       },
       {
-        title: 'My Total Bookings Value',
+        title: 'Total Booking Volume',
         value: formatCurrencyPKR(stats.TotalBookingPrice),
-        subtitle: 'Confirmed Bookings (PKR)',
+        subtitle: 'Confirmed Reservations (PKR)',
         icon: Banknote,
         variant: 'white'
       },
       {
-        title: 'Credit Balance',
+        title: 'Wallet Balance',
         value: formatCurrencyPKR(myAgent?.CreditLimitBalance ?? 0),
-        subtitle: `Limit: ${formatCurrencyPKR(myAgent?.CreditLimit ?? 0)}`,
+        subtitle: `Credit Line: ${formatCurrencyPKR(myAgent?.CreditLimit ?? 0)}`,
         icon: UserCheck,
         variant: 'navy'
       }
@@ -76,10 +76,10 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <span className="text-[11px] font-semibold uppercase tracking-widest text-[#1B3664]">
-              {user?.SubCompanyName || 'Sub-Agent'} • Agent Dashboard
+              {user?.SubCompanyName || 'Partner Agency'} • Partner Control Center
             </span>
             <h1 className="font-display font-semibold text-xl sm:text-2xl text-slate-900 mt-0.5">
-              My Bookings & POS Overview
+              Agency Workspace & Reservations
             </h1>
           </div>
           <div className="flex items-center gap-2.5">
@@ -88,7 +88,7 @@ export default function Dashboard() {
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1B3664] text-white text-xs font-medium hover:bg-[#0F172A] transition shadow-xs cursor-pointer"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Book Flight in POS</span>
+              <span>Open Booking Terminal</span>
             </button>
           </div>
         </div>
@@ -415,36 +415,36 @@ export default function Dashboard() {
     );
   }
 
-  // --- MAIN ADMIN DASHBOARD (Unchanged) ---
+  // --- MAIN ADMIN DASHBOARD ---
   const kpiCards = [
     {
-      title: 'Sub Agents',
+      title: 'Partner Agencies',
       value: stats.TotalSubAgents || subAgents.length,
-      subtitle: 'Registered B2B Partner Agencies',
+      subtitle: 'Registered B2B Travel Partners',
       icon: Users,
       link: '/ManageSubAgents',
       variant: 'navy'
     },
     {
-      title: 'Bookings',
+      title: 'Total Reservations',
       value: stats.TotalBookings || bookings.length,
-      subtitle: `${statusCounts.Pending} Pending • ${statusCounts.Issued} Issued`,
+      subtitle: `${statusCounts.Pending} Pending • ${statusCounts.Issued} Ticketed`,
       icon: Ticket,
       link: '/FlightBookings',
       variant: 'slate'
     },
     {
-      title: 'User Registrations',
+      title: 'Portal Operators',
       value: stats.TotalUsers,
-      subtitle: 'Active Administrators & Operators',
+      subtitle: 'Active Agency & Desk Users',
       icon: UserCheck,
       link: '/ManageSubAgents',
       variant: 'white'
     },
     {
-      title: 'Sales',
+      title: 'Net Ticket Volume',
       value: formatCurrencyPKR(stats.TotalBookingPrice),
-      subtitle: 'Confirmed Group Revenue (PKR)',
+      subtitle: 'Confirmed Ticketing Revenue (PKR)',
       icon: Banknote,
       link: '/FlightBookings',
       variant: 'navy'
@@ -457,10 +457,10 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <span className="text-[11px] font-semibold uppercase tracking-widest text-[#1B3664]">
-            Bookly • Executive Command Overview
+            Bookly • Central Control Center
           </span>
           <h1 className="font-display font-semibold text-xl sm:text-2xl text-slate-900 mt-0.5">
-            Aviation & Group Ticketing Dashboard
+            Operations & Ticketing Control Center
           </h1>
         </div>
         <div className="flex items-center gap-2.5">
@@ -468,14 +468,14 @@ export default function Dashboard() {
             onClick={() => navigate('/FlightBookings')}
             className="px-3.5 py-2 rounded-lg bg-white border border-slate-200 text-[#1B3664] text-xs font-medium hover:bg-slate-50 transition cursor-pointer"
           >
-            View Flight Bookings
+            Reservations & Tickets
           </button>
           <button
             onClick={() => navigate('/FlightPOS')}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#1B3664] text-white text-xs font-medium hover:bg-[#0F172A] transition shadow-xs cursor-pointer"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            <span>New POS Booking</span>
+            <span>Open Booking Terminal</span>
           </button>
         </div>
       </div>
@@ -539,17 +539,17 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-display font-semibold text-base text-slate-900">
-                Active Flight Segments & Seat Occupancy
+                Live Sector Capacity & Load Factor
               </h3>
               <p className="text-xs text-slate-500">
-                Real-time inventory across active flight segments
+                Real-time seat availability across active routes
               </p>
             </div>
             <button
               onClick={() => navigate('/SegmentManagement')}
               className="text-xs font-medium text-[#1B3664] hover:underline cursor-pointer"
             >
-              Manage Segments &rarr;
+              Routes & Inventory &rarr;
             </button>
           </div>
 
@@ -619,7 +619,7 @@ export default function Dashboard() {
         <div className="lg:col-span-5 space-y-5">
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-executive">
             <h3 className="font-display font-semibold text-base text-slate-900 mb-3.5">
-              Booking Approval Pipeline
+              Reservation Status Tracker
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
               <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
@@ -669,13 +669,13 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-executive">
             <div className="flex items-center justify-between mb-3.5">
               <h3 className="font-display font-semibold text-base text-slate-900">
-                Sub-Agent Credit Balances
+                Partner Agency Wallets
               </h3>
               <button
                 onClick={() => navigate('/ManageSubAgents')}
                 className="text-xs font-medium text-[#1B3664] hover:underline cursor-pointer"
               >
-                Manage Agents &rarr;
+                Partner Agencies &rarr;
               </button>
             </div>
             {subAgents.length === 0 ? (

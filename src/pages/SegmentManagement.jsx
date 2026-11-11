@@ -322,10 +322,10 @@ export default function SegmentManagement() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <span className="text-[11px] font-semibold uppercase tracking-wider text-[#1B3664]">
-            Sector Legs, Baggage, Pricing & IATA Manifests
+            Route Schedule, Seat Allocation & Manifest Exports
           </span>
           <h1 className="font-display font-semibold text-xl text-slate-900 mt-0.5">
-            Segment Management
+            Routes & Seat Inventory
           </h1>
         </div>
         <button
@@ -333,7 +333,7 @@ export default function SegmentManagement() {
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-medium text-xs transition shadow-xs cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>Add Flight Segment</span>
+          <span>Create Flight Sector</span>
         </button>
       </div>
 

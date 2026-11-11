@@ -228,10 +228,10 @@ export default function FlightBookings() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <span className="text-[11px] font-semibold uppercase tracking-widest text-[#1B3664]">
-            PNR & E-Ticket Control Desk
+            Central Reservation & Ticketing Desk
           </span>
           <h1 className="font-display font-semibold text-xl sm:text-2xl text-slate-900 mt-0.5">
-            Flight Bookings
+            Reservations & Tickets
           </h1>
         </div>
 

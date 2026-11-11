@@ -1,6 +1,7 @@
 export const initialSeedData = {
   airports: [
     { AirportCode: 'KHI', AirportName: 'Jinnah Intl Airport', CityName: 'Karachi', CountryName: 'Pakistan' },
+    { AirportCode: 'LHE', AirportName: 'Allama Iqbal Intl Airport', CityName: 'Lahore', CountryName: 'Pakistan' },
     { AirportCode: 'IKA', AirportName: 'Imam Khomeini Intl Airport', CityName: 'Tehran', CountryName: 'Iran' },
     { AirportCode: 'MHD', AirportName: 'Mashhad Intl Airport', CityName: 'Mashhad', CountryName: 'Iran' }
   ],

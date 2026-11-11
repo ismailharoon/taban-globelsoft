@@ -1491,10 +1491,10 @@ export default function FlightPOS() {
           <div className="bg-[#1D314F] text-white px-5 py-3 flex items-center justify-between">
             <div>
               <h3 className="font-display font-semibold text-xs uppercase tracking-wider">
-                My POS Bookings ({bookings.length})
+                My Agency Reservations ({bookings.length})
               </h3>
               <p className="text-[11px] text-white/70">
-                Only bookings created by your agency account are displayed here
+                Reservations and e-tickets created under your partner agency account
               </p>
             </div>
           </div>

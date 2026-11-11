@@ -25,24 +25,24 @@ import { formatCurrencyPKR } from '../utils/exporters';
 
 const navSections = [
   {
-    group: 'Overview',
+    group: 'Command Hub',
     items: [
-      { to: '/Dashboard', label: 'Dashboard', urdu: 'ڈیش بورڈ', icon: LayoutDashboard }
+      { to: '/Dashboard', label: 'Control Center', urdu: 'کنٹرول سینٹر', icon: LayoutDashboard }
     ]
   },
   {
-    group: 'Flight Operations',
+    group: 'Ticketing & Inventory',
     items: [
-      { to: '/FlightPOS', label: 'Flight POS (Search & Book)', urdu: 'فلائٹ سرچ اور بکنگ', icon: ShoppingBag },
-      { to: '/FlightBookings', label: 'Flight Bookings', urdu: 'فلائٹ بکنگز', icon: Ticket, badgeKey: 'pending', adminOnly: true },
-      { to: '/SegmentManagement', label: 'Segment Management', urdu: 'سیگمنٹ مینجمنٹ', icon: Layers, adminOnly: true }
+      { to: '/FlightPOS', label: 'Booking Terminal', urdu: 'بکنگ ٹرمینل', icon: ShoppingBag },
+      { to: '/FlightBookings', label: 'Reservations & Tickets', urdu: 'ریزرویشنز اور ٹکٹس', icon: Ticket, badgeKey: 'pending', adminOnly: true },
+      { to: '/SegmentManagement', label: 'Routes & Seat Inventory', urdu: 'روٹس اور سیٹ انوینٹری', icon: Layers, adminOnly: true }
     ]
   },
   {
-    group: 'Agency Network',
+    group: 'B2B Partners',
     adminOnly: true,
     items: [
-      { to: '/ManageSubAgents', label: 'Manage Sub Agents', urdu: 'سب ایجنٹس', icon: Users, adminOnly: true }
+      { to: '/ManageSubAgents', label: 'Partner Agencies', urdu: 'پارٹنر ایجنسیاں', icon: Users, adminOnly: true }
     ]
   }
 ];
