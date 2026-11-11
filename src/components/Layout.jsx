@@ -33,7 +33,7 @@ const navSections = [
   {
     group: 'Ticketing & Inventory',
     items: [
-      { to: '/FlightPOS', label: 'Booking Terminal', urdu: 'بکنگ ٹرمینل', icon: ShoppingBag },
+      { to: '/FlightPOS', label: 'Search Flight', urdu: 'فلائٹ سرچ', icon: ShoppingBag },
       { to: '/FlightBookings', label: 'Reservations & Tickets', urdu: 'ریزرویشنز اور ٹکٹس', icon: Ticket, badgeKey: 'pending' },
       { to: '/SegmentManagement', label: 'Routes & Seat Inventory', urdu: 'روٹس اور سیٹ انوینٹری', icon: Layers, adminOnly: true }
     ]
@@ -375,7 +375,7 @@ export default function Layout({ children }) {
               className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1B3664] text-white hover:bg-[#0F172A] text-xs font-medium transition cursor-pointer"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>POS Flight Search</span>
+              <span>Search Flight</span>
             </button>
 
             <button

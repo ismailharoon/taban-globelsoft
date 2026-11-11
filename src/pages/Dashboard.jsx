@@ -88,7 +88,7 @@ export default function Dashboard() {
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1B3664] text-white text-xs font-medium hover:bg-[#0F172A] transition shadow-xs cursor-pointer"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Open Booking Terminal</span>
+              <span>Search Flight</span>
             </button>
           </div>
         </div>
@@ -486,7 +486,7 @@ export default function Dashboard() {
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#1B3664] text-white text-xs font-medium hover:bg-[#0F172A] transition shadow-xs cursor-pointer"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            <span>Open Booking Terminal</span>
+            <span>Search Flight</span>
           </button>
         </div>
       </div>

@@ -1017,11 +1017,52 @@ export function PortalProvider({ children }) {
     updateLocalDb((draft) => {
       const idx = draft.subAgents.findIndex((a) => a.SubCompanyID === id);
       if (idx !== -1) {
-        draft.subAgents[idx] = { ...draft.subAgents[idx], ...payload };
+        const existing = draft.subAgents[idx];
+        const nextLimit =
+          payload.CreditLimit !== undefined
+            ? Number(payload.CreditLimit) || 0
+            : Number(existing.CreditLimit) || 0;
+        let nextBalance =
+          payload.CreditLimitBalance !== undefined
+            ? Number(payload.CreditLimitBalance) || 0
+            : Number(existing.CreditLimitBalance) || 0;
+
+        // If CreditLimit was changed without an explicit CreditLimitBalance override, adjust balance by delta
+        if (
+          payload.CreditLimit !== undefined &&
+          payload.CreditLimitBalance === undefined &&
+          nextLimit !== Number(existing.CreditLimit)
+        ) {
+          const delta = nextLimit - (Number(existing.CreditLimit) || 0);
+          nextBalance = Math.max(0, (Number(existing.CreditLimitBalance) || 0) + delta);
+        }
+
+        draft.subAgents[idx] = {
+          ...existing,
+          ...payload,
+          CreditLimit: nextLimit,
+          CreditLimitBalance: nextBalance
+        };
       }
       return draft;
     });
     addToast('SubAgent updated successfully.', 'success');
+  };
+
+  const topUpSubAgentCredit = async (id, addAmount) => {
+    const amount = Number(addAmount) || 0;
+    if (amount <= 0) {
+      throw new Error('Please enter a valid credit amount greater than 0.');
+    }
+    updateLocalDb((draft) => {
+      const ag = draft.subAgents.find((a) => a.SubCompanyID === id);
+      if (ag) {
+        ag.CreditLimit = (Number(ag.CreditLimit) || 0) + amount;
+        ag.CreditLimitBalance = (Number(ag.CreditLimitBalance) || 0) + amount;
+      }
+      return draft;
+    });
+    addToast(`Added PKR ${amount.toLocaleString('en-US')} credit successfully.`, 'success');
   };
 
   const deleteSubAgent = async (id) => {
@@ -1156,6 +1197,7 @@ export function PortalProvider({ children }) {
         deleteSegment,
         createSubAgent,
         updateSubAgent,
+        topUpSubAgentCredit,
         deleteSubAgent,
         createSubAgentUser,
         updateSubAgentUser,

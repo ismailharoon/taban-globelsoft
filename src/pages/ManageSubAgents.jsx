@@ -7,6 +7,7 @@ import {
   Trash2,
   ChevronDown,
   ChevronRight,
+  Banknote,
   X
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
@@ -54,6 +55,7 @@ export default function ManageSubAgents() {
     subAgents,
     createSubAgent,
     updateSubAgent,
+    topUpSubAgentCredit,
     deleteSubAgent,
     createSubAgentUser,
     updateSubAgentUser,
@@ -65,6 +67,10 @@ export default function ManageSubAgents() {
   const [showAgentModal, setShowAgentModal] = useState(false);
   const [editingAgentId, setEditingAgentId] = useState(null);
   const [agentForm, setAgentForm] = useState(INITIAL_AGENT_FORM);
+
+  // Top-Up / Add Credit Modal State
+  const [creditTargetAgent, setCreditTargetAgent] = useState(null);
+  const [topUpAmount, setTopUpAmount] = useState('');
 
   const [showUserModal, setShowUserModal] = useState(false);
   const [activeSubCompanyId, setActiveSubCompanyId] = useState(null);
@@ -128,6 +134,23 @@ export default function ManageSubAgents() {
         await createSubAgentUser(activeSubCompanyId, userForm);
       }
       setShowUserModal(false);
+    } catch (err) {
+      addToast(err.message, 'error');
+    }
+  };
+
+  const openTopUpModal = (agent) => {
+    setCreditTargetAgent(agent);
+    setTopUpAmount('');
+  };
+
+  const handleConfirmTopUp = async (e) => {
+    e.preventDefault();
+    if (!creditTargetAgent) return;
+    try {
+      await topUpSubAgentCredit(creditTargetAgent.SubCompanyID, Number(topUpAmount));
+      setCreditTargetAgent(null);
+      setTopUpAmount('');
     } catch (err) {
       addToast(err.message, 'error');
     }
@@ -218,6 +241,9 @@ export default function ManageSubAgents() {
                           <div className="text-[11px] text-emerald-700 font-medium">
                             Bal: {formatCurrencyPKR(agent.CreditLimitBalance)}
                           </div>
+                          <div className="text-[10px] text-slate-500">
+                            Used: {formatCurrencyPKR(Math.max(0, (Number(agent.CreditLimit) || 0) - (Number(agent.CreditLimitBalance) || 0)))}
+                          </div>
                         </td>
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-1.5">
@@ -252,6 +278,14 @@ export default function ManageSubAgents() {
                         <td className="py-3 px-3 text-slate-500">{agent.Created}</td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => openTopUpModal(agent)}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                              title="Add / Top-Up Credit Balance"
+                            >
+                              <Banknote className="w-3.5 h-3.5" />
+                              <span>+ Add Credit</span>
+                            </button>
                             <button
                               onClick={() => openAddUserModal(agent.SubCompanyID)}
                               className="px-2.5 py-1 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
@@ -599,6 +633,139 @@ export default function ManageSubAgents() {
                   className="px-5 py-2 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-medium transition cursor-pointer"
                 >
                   Save SubAgent
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ADD / TOP-UP CREDIT MODAL */}
+      {creditTargetAgent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden">
+            <div className="bg-[#1D314F] text-white px-5 py-3.5 flex items-center justify-between">
+              <div>
+                <h5 className="font-semibold text-sm">
+                  Add / Top-Up Agency Credit
+                </h5>
+                <p className="text-[11px] text-white/75">
+                  {creditTargetAgent.CompanyName} ({creditTargetAgent.City})
+                </p>
+              </div>
+              <button
+                onClick={() => setCreditTargetAgent(null)}
+                className="text-white/75 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmTopUp} className="p-5 space-y-4 text-xs">
+              {/* Current Credit Breakdown */}
+              <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2 font-mono">
+                <div className="flex justify-between">
+                  <span className="font-sans text-slate-500">Total Credit Limit:</span>
+                  <span className="font-semibold text-slate-900">
+                    {formatCurrencyPKR(creditTargetAgent.CreditLimit)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-sans text-slate-500">Credit Used:</span>
+                  <span className="font-semibold text-amber-700">
+                    {formatCurrencyPKR(
+                      Math.max(
+                        0,
+                        (Number(creditTargetAgent.CreditLimit) || 0) -
+                          (Number(creditTargetAgent.CreditLimitBalance) || 0)
+                      )
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between border-t border-slate-200 pt-2">
+                  <span className="font-sans font-semibold text-slate-700">
+                    Current Available Balance:
+                  </span>
+                  <span className="font-bold text-emerald-700 text-sm">
+                    {formatCurrencyPKR(creditTargetAgent.CreditLimitBalance)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Amount to Add */}
+              <div>
+                <label className="block font-semibold text-[#1B3664] mb-1">
+                  Enter Additional Credit Amount to Add (PKR) *
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="e.g. 3000000"
+                  value={topUpAmount}
+                  onChange={(e) => setTopUpAmount(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 font-mono font-bold text-sm text-[#1B3664] focus:border-[#1B3664] focus:outline-none"
+                  required
+                />
+                {/* Quick Preset Pills */}
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {[
+                    { label: '+1 Million', val: 1000000 },
+                    { label: '+2 Million', val: 2000000 },
+                    { label: '+3 Million', val: 3000000 },
+                    { label: '+4 Million', val: 4000000 },
+                    { label: '+5 Million', val: 5000000 }
+                  ].map((preset) => (
+                    <button
+                      key={preset.val}
+                      type="button"
+                      onClick={() =>
+                        setTopUpAmount(String((Number(topUpAmount) || 0) + preset.val))
+                      }
+                      className="px-2.5 py-1 rounded-md bg-slate-100 hover:bg-[#1B3664] text-slate-700 hover:text-white font-mono text-[11px] font-semibold transition cursor-pointer"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* New Balance Preview */}
+              {Number(topUpAmount) > 0 && (
+                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 space-y-1 font-mono">
+                  <div className="flex justify-between text-emerald-900">
+                    <span className="font-sans font-semibold">New Available Balance:</span>
+                    <span className="font-bold text-sm">
+                      {formatCurrencyPKR(
+                        (Number(creditTargetAgent.CreditLimitBalance) || 0) +
+                          (Number(topUpAmount) || 0)
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-emerald-700">
+                    <span className="font-sans">New Total Credit Limit:</span>
+                    <span>
+                      {formatCurrencyPKR(
+                        (Number(creditTargetAgent.CreditLimit) || 0) +
+                          (Number(topUpAmount) || 0)
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setCreditTargetAgent(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 font-medium text-slate-700 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition cursor-pointer"
+                >
+                  Confirm &amp; Add Credit
                 </button>
               </div>
             </form>
