@@ -38,6 +38,7 @@ export default function FlightPOS() {
     subAgents,
     airports,
     createBooking,
+    issueTicket,
     cancelBooking,
     addToast
   } = usePortal();
@@ -1519,6 +1520,8 @@ export default function FlightPOS() {
                 <tbody className="divide-y divide-slate-200">
                   {bookings.map((b) => {
                     const isIssued = b.ApprovalStatus === 'Ticket Issued';
+                    const canIssue =
+                      b.ApprovalStatus === 'Pending' || b.ApprovalStatus === 'Approved';
                     const canCancel =
                       !isIssued &&
                       b.ApprovalStatus !== 'Cancelled' &&
@@ -1567,6 +1570,16 @@ export default function FlightPOS() {
                         </td>
                         <td className="py-2.5 px-4 text-right">
                           <div className="inline-flex items-center justify-end gap-1.5">
+                            {canIssue && (
+                              <button
+                                type="button"
+                                onClick={() => issueTicket(b.AirGroupBookingID)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-medium transition cursor-pointer"
+                              >
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>Issue Ticket</span>
+                              </button>
+                            )}
                             {canCancel && (
                               <button
                                 type="button"

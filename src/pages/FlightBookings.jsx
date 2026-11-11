@@ -36,11 +36,13 @@ const STATUS_TABS = [
 
 export default function FlightBookings() {
   const {
+    isSubAgent,
     bookings,
     subAgents,
     approveBooking,
     rejectBooking,
     issueTicket,
+    cancelBooking,
     voidBooking,
     updateBooking,
     deleteBooking,
@@ -275,21 +277,23 @@ export default function FlightBookings() {
             className="w-full pl-9 pr-4 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs focus:outline-none focus:border-[#1B3664] focus:bg-white"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-[#1B3664]" />
-          <select
-            value={agentFilter}
-            onChange={(e) => setAgentFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:border-[#1B3664]"
-          >
-            <option value="ALL">All Sub Agents ({subAgents.length})</option>
-            {subAgents.map((a) => (
-              <option key={a.SubCompanyID} value={a.SubCompanyID}>
-                {a.CompanyName} ({a.City})
-              </option>
-            ))}
-          </select>
-        </div>
+        {!isSubAgent && (
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-[#1B3664]" />
+            <select
+              value={agentFilter}
+              onChange={(e) => setAgentFilter(e.target.value)}
+              className="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:border-[#1B3664]"
+            >
+              <option value="ALL">All Partner Agencies ({subAgents.length})</option>
+              {subAgents.map((a) => (
+                <option key={a.SubCompanyID} value={a.SubCompanyID}>
+                  {a.CompanyName} ({a.City})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Bookings Master-Detail Data Grid */}

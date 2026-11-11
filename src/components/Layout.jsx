@@ -34,7 +34,7 @@ const navSections = [
     group: 'Ticketing & Inventory',
     items: [
       { to: '/FlightPOS', label: 'Booking Terminal', urdu: 'بکنگ ٹرمینل', icon: ShoppingBag },
-      { to: '/FlightBookings', label: 'Reservations & Tickets', urdu: 'ریزرویشنز اور ٹکٹس', icon: Ticket, badgeKey: 'pending', adminOnly: true },
+      { to: '/FlightBookings', label: 'Reservations & Tickets', urdu: 'ریزرویشنز اور ٹکٹس', icon: Ticket, badgeKey: 'pending' },
       { to: '/SegmentManagement', label: 'Routes & Seat Inventory', urdu: 'روٹس اور سیٹ انوینٹری', icon: Layers, adminOnly: true }
     ]
   },
@@ -316,7 +316,7 @@ export default function Layout({ children }) {
                       onClick={() => {
                         setOpenDropdown(null);
                         setSearchQuery('');
-                        navigate(isSubAgent ? '/Dashboard' : '/FlightBookings');
+                        navigate('/FlightBookings');
                       }}
                       className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-50 flex items-center justify-between text-xs"
                     >
@@ -330,27 +330,31 @@ export default function Layout({ children }) {
                     </button>
                   ))}
 
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-[#1B3664] px-2 py-1 mt-1.5">
-                    Flight Segments ({searchResults.segments.length})
-                  </div>
-                  {searchResults.segments.map((s) => (
-                    <button
-                      key={s.AirGroupSegmentID}
-                      onClick={() => {
-                        setOpenDropdown(null);
-                        setSearchQuery('');
-                        navigate('/FlightPOS');
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-50 flex items-center justify-between text-xs"
-                    >
-                      <span className="font-medium truncate">
-                        {s.FlightNumber} • {s.DepartureIata} &rarr; {s.ArrivalIata}
-                      </span>
-                      <span className="font-mono text-[#1B3664] font-semibold">
-                        {formatCurrencyPKR(s.AdultPrice)}
-                      </span>
-                    </button>
-                  ))}
+                  {!isSubAgent && (
+                    <>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-[#1B3664] px-2 py-1 mt-1.5">
+                        Flight Segments ({searchResults.segments.length})
+                      </div>
+                      {searchResults.segments.map((s) => (
+                        <button
+                          key={s.AirGroupSegmentID}
+                          onClick={() => {
+                            setOpenDropdown(null);
+                            setSearchQuery('');
+                            navigate('/FlightPOS');
+                          }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-50 flex items-center justify-between text-xs"
+                        >
+                          <span className="font-medium truncate">
+                            {s.FlightNumber} • {s.DepartureIata} &rarr; {s.ArrivalIata}
+                          </span>
+                          <span className="font-mono text-[#1B3664] font-semibold">
+                            {formatCurrencyPKR(s.AdultPrice)}
+                          </span>
+                        </button>
+                      ))}
+                    </>
+                  )}
 
                   {searchResults.bookings.length === 0 &&
                     searchResults.segments.length === 0 &&

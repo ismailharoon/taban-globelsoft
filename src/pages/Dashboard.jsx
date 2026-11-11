@@ -22,7 +22,7 @@ import { formatCurrencyPKR, formatShortDate } from '../utils/exporters';
 import TicketPrintModal from '../components/TicketPrintModal';
 
 export default function Dashboard() {
-  const { user, isSubAgent, stats, bookings, segments, subAgents, cancelBooking } = usePortal();
+  const { user, isSubAgent, stats, bookings, segments, subAgents, cancelBooking, issueTicket } = usePortal();
   const navigate = useNavigate();
   const [printBooking, setPrintBooking] = useState(null);
   const [expandedRows, setExpandedRows] = useState({});
@@ -195,6 +195,8 @@ export default function Dashboard() {
                     {bookings.map((b) => {
                       const isExpanded = Boolean(expandedRows[b.AirGroupBookingID]);
                       const isIssued = b.ApprovalStatus === 'Ticket Issued';
+                      const canIssue =
+                        b.ApprovalStatus === 'Pending' || b.ApprovalStatus === 'Approved';
                       const canCancel =
                         !isIssued &&
                         b.ApprovalStatus !== 'Cancelled' &&
@@ -258,6 +260,15 @@ export default function Dashboard() {
                             </td>
                             <td className="py-2.5 px-3 text-right">
                               <div className="inline-flex items-center justify-end gap-1.5">
+                                {canIssue && (
+                                  <button
+                                    onClick={() => issueTicket(b.AirGroupBookingID)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-medium transition cursor-pointer"
+                                  >
+                                    <Ticket className="w-3 h-3" />
+                                    <span>Issue Ticket</span>
+                                  </button>
+                                )}
                                 {canCancel && (
                                   <button
                                     onClick={() => {

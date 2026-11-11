@@ -46,7 +46,7 @@ export default function App() {
       <Route
         path="/FlightBookings"
         element={
-          <ProtectedShell adminOnly>
+          <ProtectedShell>
             <FlightBookings />
           </ProtectedShell>
         }
