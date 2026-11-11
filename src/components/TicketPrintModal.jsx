@@ -16,7 +16,7 @@ function extractShortDate(dtStr) {
   const d = new Date(dtStr);
   if (isNaN(d.getTime())) return dtStr;
   return d.toLocaleDateString('en-GB', {
-     weekday: 'short',
+    weekday: 'short',
     day: '2-digit',
     month: 'short',
     year: 'numeric'
@@ -34,10 +34,77 @@ function formatDobShort(dtStr) {
   });
 }
 
-// Deterministic crisp vector barcode bars for authentic international e-ticket header
-const BARCODE_WIDTHS = [
-  2, 1, 3, 1, 2, 1, 1, 3, 2, 1, 2, 3, 1, 1, 2, 1, 3, 1, 2, 2, 1, 3, 1, 2, 1, 1, 3, 2, 1, 2, 1, 3, 2, 1, 2
-];
+// Official ISO/IEC 16388 Code-39 Barcode lookup table (scannable by any 1D barcode scanner)
+const CODE39_MAP = {
+  '0': 'nnnwwnwnn',
+  '1': 'wnnwnnnnw',
+  '2': 'nnwwnnnnw',
+  '3': 'wnwwnnnnn',
+  '4': 'nnnwwnnnw',
+  '5': 'wnnwwnnnn',
+  '6': 'nnwwwnnnn',
+  '7': 'nnnwnnwnw',
+  '8': 'wnnwnnwnn',
+  '9': 'nnwwnnwnn',
+  A: 'wnnnnwnnw',
+  B: 'nnwnnwnnw',
+  C: 'wnwnnwnnn',
+  D: 'nnnnwwnnw',
+  E: 'wnnnwwnnn',
+  F: 'nnwnwwnnn',
+  G: 'nnnnnwwnw',
+  H: 'wnnnnwwnn',
+  I: 'nnwnnwwnn',
+  J: 'nnnnwwwnn',
+  K: 'wnnnnnnww',
+  L: 'nnwnnnnww',
+  M: 'wnwnnnnwn',
+  N: 'nnnnwnnww',
+  O: 'wnnnwnnwn',
+  P: 'nnwnwnnwn',
+  Q: 'nnnnnnwww',
+  R: 'wnnnnnwwn',
+  S: 'nnwnnnwwn',
+  T: 'nnnnwnwwn',
+  U: 'wwnnnnnnw',
+  V: 'nwwnnnnnw',
+  W: 'wwwnnnnnn',
+  X: 'nwnnwnnnw',
+  Y: 'wwnnwnnnn',
+  Z: 'nwwnwnnnn',
+  '-': 'nwnnnnwnw',
+  '*': 'nwnnwnwnn'
+};
+
+function buildCode39Bars(rawText) {
+  const clean = String(rawText || 'PNR')
+    .toUpperCase()
+    .replace(/[^0-9A-Z-]/g, '');
+  const encoded = `*${clean || 'PNR'}*`;
+  const narrow = 1.25;
+  const wide = 3.0;
+  const quietZone = 8;
+
+  const rects = [];
+  let x = quietZone;
+
+  for (let cIdx = 0; cIdx < encoded.length; cIdx++) {
+    const ch = encoded[cIdx];
+    const pattern = CODE39_MAP[ch] || CODE39_MAP['0'];
+    for (let i = 0; i < 9; i++) {
+      const isBar = i % 2 === 0;
+      const w = pattern[i] === 'w' ? wide : narrow;
+      if (isBar) {
+        rects.push({ x, width: w });
+      }
+      x += w;
+    }
+    // Inter-character narrow space
+    x += narrow;
+  }
+
+  return { rects, totalWidth: x + quietZone - narrow };
+}
 
 export default function TicketPrintModal({ booking, onClose }) {
   const printRef = useRef(null);
@@ -48,6 +115,8 @@ export default function TicketPrintModal({ booking, onClose }) {
   const statusLabel = isIssued
     ? 'CONFIRMED • E-TICKET ISSUED'
     : `RESERVATION ${(booking.ApprovalStatus || 'BOOKED').toUpperCase()}`;
+
+  const barcodeData = buildCode39Bars(booking.PNR);
 
   const handlePrint = () => {
     const content = printRef.current ? printRef.current.innerHTML : '';
@@ -111,7 +180,7 @@ export default function TicketPrintModal({ booking, onClose }) {
             />
             <div>
               <h3 className="font-semibold text-sm tracking-wide">
-                International E-Ticket & Boarding Itinerary — {booking.PNR}
+                International E-Ticket &amp; Boarding Itinerary — {booking.PNR}
               </h3>
               <p className="text-[11px] text-slate-400">
                 Booking Ref: {booking.AirGroupBookingID} • Status: {booking.ApprovalStatus}
@@ -150,7 +219,7 @@ export default function TicketPrintModal({ booking, onClose }) {
               fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif"
             }}
           >
-            {/* 1. INTERNATIONAL AIRLINE MASTHEAD WITH BARCODE & PNR */}
+            {/* 1. INTERNATIONAL AIRLINE MASTHEAD WITH WORKING CODE-39 BARCODE & PNR */}
             <div
               style={{
                 display: 'flex',
@@ -225,8 +294,8 @@ export default function TicketPrintModal({ booking, onClose }) {
                 </div>
               </div>
 
-              {/* Right: Vector Barcode + Airline PNR Box */}
-              <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              {/* Right: Scannable Code-39 Barcode + Airline PNR Box */}
+              <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div style={{ textAlign: 'right' }}>
                   <div
                     style={{
@@ -257,29 +326,29 @@ export default function TicketPrintModal({ booking, onClose }) {
                   </div>
                 </div>
 
-                {/* Minimalist Vertical/Horizontal Barcode Block */}
+                {/* Real Scannable ISO Code-39 Barcode encoding *PNR* */}
                 <div
                   style={{
                     borderLeft: '1px dashed #cbd5e1',
-                    paddingLeft: '14px',
+                    paddingLeft: '12px',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center'
                   }}
                 >
-                  <svg width="96" height="42" viewBox="0 0 96 42" xmlns="http://www.w3.org/2000/svg">
-                    {BARCODE_WIDTHS.reduce(
-                      (acc, w, i) => {
-                        const rect =
-                          i % 2 === 0 ? (
-                            <rect key={i} x={acc.x} y="2" width={w} height="38" fill="#0f172a" />
-                          ) : null;
-                        return { x: acc.x + w + 0.7, els: [...acc.els, rect] };
-                      },
-                      { x: 2, els: [] }
-                    ).els}
+                  <svg
+                    width="136"
+                    height="42"
+                    viewBox={`0 0 ${barcodeData.totalWidth} 42`}
+                    preserveAspectRatio="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    style={{ backgroundColor: '#ffffff', display: 'block' }}
+                  >
+                    {barcodeData.rects.map((r, i) => (
+                      <rect key={i} x={r.x} y="2" width={r.width} height="38" fill="#0f172a" />
+                    ))}
                   </svg>
-                  <span style={{ fontSize: '8.5px', fontFamily: 'monospace', color: '#64748b', letterSpacing: '1.5px' }}>
+                  <span style={{ fontSize: '8.5px', fontFamily: 'monospace', color: '#64748b', letterSpacing: '1.5px', marginTop: '2px' }}>
                     *{booking.PNR}*
                   </span>
                 </div>
@@ -583,7 +652,7 @@ export default function TicketPrintModal({ booking, onClose }) {
             </div>
 
             {/* 4. PASSENGER & E-TICKET COUPON MANIFEST */}
-            <div style={{ marginBottom: '20px' }}>
+            <div style={{ marginBottom: '18px' }}>
               <div
                 style={{
                   fontSize: '11px',
@@ -656,50 +725,7 @@ export default function TicketPrintModal({ booking, onClose }) {
               </div>
             </div>
 
-            {/* 5. CONDITIONS OF CARRIAGE & IMPORTANT PASSENGER NOTICES */}
-            <div
-              style={{
-                border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                padding: '12px 16px',
-                backgroundColor: '#fafafa',
-                marginBottom: '18px'
-              }}
-            >
-              <div
-                style={{
-                  fontWeight: 800,
-                  fontSize: '10.5px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.8px',
-                  color: '#0f172a',
-                  borderBottom: '1px solid #e2e8f0',
-                  paddingBottom: '6px',
-                  marginBottom: '8px'
-                }}
-              >
-                Important Passenger Notices &amp; Conditions of Carriage
-              </div>
-
-              <div style={{ fontSize: '10.5px', lineHeight: '1.6', color: '#334155' }}>
-                <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
-                  داشتن ویزا ،معتبر واچر هتل و بلیط برگشت برای مسافران ایرانی هنگام ورود به پاکستان الزامی است
-                </div>
-                <div style={{ marginBottom: '6px' }}>
-                  اگر از خروج یا ورود مسافران ایرانی توسط پلیس مهاجرت و گذرنامه جلوگیری شود تمام هزینه‌های مربوطه از جمله حمل و نقل برگشت و ،اقامتبر عهده مسافر خواهد بود شرکت هواپیمایی تابان هیچ مسئولیتی در این زمینه ندارد
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px 18px', color: '#475569' }}>
-                  <div>&bull; Check-in counters close strictly 3 hours prior to departure.</div>
-                  <div>&bull; Tickets are non-refundable, non-transferable, and non-endorsable.</div>
-                  <div>&bull; Valid passport and visa must be presented at check-in and boarding.</div>
-                  <div>&bull; Passengers must carry a minimum of USD 350 for immigration check.</div>
-                  <div>&bull; Each passenger must submit four (4) copies of their visa at boarding.</div>
-                  <div>&bull; No refund applies in cases of no-show, offload, or force majeure.</div>
-                </div>
-              </div>
-            </div>
-
-            {/* 6. ISSUING OFFICE & ASSISTANCE CONTACT BOX */}
+            {/* 5. ISSUING OFFICE & ASSISTANCE CONTACT BOX (MOVED ABOVE PASSENGER NOTICES) */}
             {(() => {
               const agent = booking.AgentDetails;
               const contactHeading = (
@@ -737,7 +763,8 @@ export default function TicketPrintModal({ booking, onClose }) {
                     border: '1px solid #cbd5e1',
                     borderRadius: '8px',
                     backgroundColor: '#ffffff',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    marginBottom: '18px'
                   }}
                 >
                   <div
@@ -857,6 +884,48 @@ export default function TicketPrintModal({ booking, onClose }) {
                 </div>
               );
             })()}
+
+            {/* 6. CONDITIONS OF CARRIAGE & IMPORTANT PASSENGER NOTICES (AT THE BOTTOM) */}
+            <div
+              style={{
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                backgroundColor: '#fafafa'
+              }}
+            >
+              <div
+                style={{
+                  fontWeight: 800,
+                  fontSize: '10.5px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.8px',
+                  color: '#0f172a',
+                  borderBottom: '1px solid #e2e8f0',
+                  paddingBottom: '6px',
+                  marginBottom: '8px'
+                }}
+              >
+                Important Passenger Notices &amp; Conditions of Carriage
+              </div>
+
+              <div style={{ fontSize: '10.5px', lineHeight: '1.6', color: '#334155' }}>
+                <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '3px' }}>
+                  داشتن ویزا ،معتبر واچر هتل و بلیط برگشت برای مسافران ایرانی هنگام ورود به پاکستان الزامی است
+                </div>
+                <div style={{ marginBottom: '6px' }}>
+                  اگر از خروج یا ورود مسافران ایرانی توسط پلیس مهاجرت و گذرنامه جلوگیری شود تمام هزینه‌های مربوطه از جمله حمل و نقل برگشت و ،اقامتبر عهده مسافر خواهد بود شرکت هواپیمایی تابان هیچ مسئولیتی در این زمینه ندارد
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px 18px', color: '#475569' }}>
+                  <div>&bull; Check-in counters close strictly 3 hours prior to departure.</div>
+                  <div>&bull; Tickets are non-refundable, non-transferable, and non-endorsable.</div>
+                  <div>&bull; Valid passport and visa must be presented at check-in and boarding.</div>
+                  <div>&bull; Passengers must carry a minimum of USD 350 for immigration check.</div>
+                  <div>&bull; Each passenger must submit four (4) copies of their visa at boarding.</div>
+                  <div>&bull; No refund applies in cases of no-show, offload, or force majeure.</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
