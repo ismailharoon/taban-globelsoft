@@ -332,6 +332,14 @@ export default function FlightBookings() {
                     !isSubAgent &&
                     (booking.ApprovalStatus === 'Ticket Issued' ||
                       booking.ApprovalStatus === 'Approved');
+                  const bookingAgent =
+                    booking.SubCompanyID && booking.SubCompanyID !== 'DIRECT'
+                      ? subAgents.find((a) => a.SubCompanyID === booking.SubCompanyID)
+                      : null;
+                  const hasEnoughBalance =
+                    !bookingAgent ||
+                    (Number(bookingAgent.CreditLimitBalance) || 0) >=
+                      (Number(booking.TotalPrice) || 0);
 
                   return (
                     <React.Fragment key={booking.AirGroupBookingID}>
@@ -480,6 +488,7 @@ export default function FlightBookings() {
 
                             {canIssue && (
                               <button
+                                disabled={!hasEnoughBalance}
                                 onClick={() =>
                                   askConfirm({
                                     title: 'Confirm Issue Ticket',
@@ -489,11 +498,19 @@ export default function FlightBookings() {
                                     action: () => issueTicket(booking.AirGroupBookingID)
                                   })
                                 }
-                                className="px-2.5 py-1.5 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
-                                title="Issue E-Tickets"
+                                className={`px-2.5 py-1.5 rounded-lg font-medium text-[11px] flex items-center gap-1 transition ${
+                                  hasEnoughBalance
+                                    ? 'bg-[#1B3664] hover:bg-[#0F172A] text-white cursor-pointer'
+                                    : 'bg-slate-200 text-slate-500 cursor-not-allowed opacity-70'
+                                }`}
+                                title={
+                                  hasEnoughBalance
+                                    ? 'Issue E-Tickets'
+                                    : `Insufficient agent credit balance (Need ${formatCurrencyPKR(booking.TotalPrice)})`
+                                }
                               >
                                 <Ticket className="w-3.5 h-3.5" />
-                                Issue Ticket
+                                {hasEnoughBalance ? 'Issue Ticket' : 'Low Balance'}
                               </button>
                             )}
 
@@ -502,7 +519,7 @@ export default function FlightBookings() {
                                 onClick={() =>
                                   askConfirm({
                                     title: 'Confirm Cancel Booking',
-                                    message: `Do you really want to cancel booking PNR ${booking.PNR}? Seats will be released and your credit balance refunded.`,
+                                    message: `Do you really want to cancel booking PNR ${booking.PNR}? Seats will be released back to inventory.`,
                                     confirmLabel: 'Yes, Cancel Booking',
                                     variant: 'danger',
                                     action: () => cancelBooking(booking.AirGroupBookingID)

@@ -7,7 +7,8 @@ import {
   X,
   FileSpreadsheet,
   FileText,
-  Luggage
+  Luggage,
+  Clock
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
 import {
@@ -33,6 +34,7 @@ const INITIAL_SEGMENT_FORM = {
   ArrivalCountry: 'Iran',
   ArrivalDate: '',
   TotalSeats: 120,
+  PnrExpiryHours: 24,
   Tier1Seats: 40,
   Tier1AdultPrice: 0,
   Tier1ChildPrice: 0,
@@ -132,6 +134,7 @@ export default function SegmentManagement() {
       ...INITIAL_SEGMENT_FORM,
       ...seg,
       TotalSeats: tot,
+      PnrExpiryHours: seg.PnrExpiryHours !== undefined ? Number(seg.PnrExpiryHours) : 0,
       Tier1Seats: defT1,
       Tier1AdultPrice: seg.Tier1AdultPrice ?? seg.AdultPrice ?? 0,
       Tier1ChildPrice: seg.Tier1ChildPrice ?? seg.ChildPrice ?? 0,
@@ -257,6 +260,7 @@ export default function SegmentManagement() {
       OperatingAirline: airlineCode,
       MarketingAirline: form.MarketingAirline || airlineCode,
       TotalSeats: totalSeats,
+      PnrExpiryHours: Math.max(0, Number(form.PnrExpiryHours) || 0),
       Tier1Seats: t1,
       Tier2Seats: t2,
       Tier3Seats: t3,
@@ -405,6 +409,16 @@ export default function SegmentManagement() {
                         </div>
                         <div className="text-[11px] text-[#1B3664]">
                           ADT={adtBag}, CNN={cnnBag}, INF={infBag}
+                        </div>
+                        <div className="mt-1">
+                          {Number(seg.PnrExpiryHours) > 0 ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-semibold">
+                              <Clock className="w-2.5 h-2.5" />
+                              Agent PNR Expiry: {seg.PnrExpiryHours}h
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400">No PNR Expiry</span>
+                          )}
                         </div>
                       </td>
                       <td className="py-3 px-3 text-center font-mono">
@@ -744,6 +758,51 @@ export default function SegmentManagement() {
                     value={form.AirCraft}
                     onChange={(e) => setForm({ ...form, AirCraft: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:border-[#1B3664] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Row 2b: Agent PNR Expiry Time Limit */}
+              <div className="p-3.5 rounded-lg bg-amber-50/70 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-900">
+                    <Clock className="w-4 h-4 text-amber-700" />
+                    <span>Agent PNR Expiry Time Limit (Hours)</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800/80 mt-0.5">
+                    If a Sub-Agent books without issuing within this time, booking auto-cancels. Main Admin bookings never expire.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                  {[
+                    { label: 'No Expiry', val: 0 },
+                    { label: '12 Hours', val: 12 },
+                    { label: '24 Hours', val: 24 },
+                    { label: '48 Hours', val: 48 },
+                    { label: '72 Hours', val: 72 }
+                  ].map((opt) => (
+                    <button
+                      key={opt.val}
+                      type="button"
+                      onClick={() => setForm({ ...form, PnrExpiryHours: opt.val })}
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
+                        Number(form.PnrExpiryHours) === opt.val
+                          ? 'bg-amber-700 text-white shadow-xs'
+                          : 'bg-white border border-amber-300 text-amber-900 hover:bg-amber-100'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.PnrExpiryHours}
+                    onChange={(e) =>
+                      setForm({ ...form, PnrExpiryHours: Math.max(0, Number(e.target.value) || 0) })
+                    }
+                    className="w-16 px-2 py-1.5 rounded-lg border border-amber-300 bg-white font-mono text-xs text-center font-bold text-amber-900"
+                    title="Custom Expiry Hours (0 = No Expiry)"
                   />
                 </div>
               </div>

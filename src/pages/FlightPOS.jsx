@@ -1491,6 +1491,9 @@ export default function FlightPOS() {
                       b.ApprovalStatus !== 'Cancelled' &&
                       b.ApprovalStatus !== 'Rejected' &&
                       b.ApprovalStatus !== 'Ticket Void';
+                    const hasEnoughBalance =
+                      !selectedAgent ||
+                      (Number(selectedAgent.CreditLimitBalance) || 0) >= (Number(b.TotalPrice) || 0);
                     return (
                       <tr key={b.AirGroupBookingID} className="hover:bg-slate-50 transition">
                         <td className="py-2.5 px-3">
@@ -1531,25 +1534,44 @@ export default function FlightPOS() {
                           <div className="text-[11px] font-mono text-slate-700">
                             {isIssued ? b.ApprovalDateTime || b.TimeStamp : b.TimeStamp}
                           </div>
+                          {!isIssued &&
+                            b.PnrExpiresAt &&
+                            b.ApprovalStatus !== 'Cancelled' &&
+                            b.ApprovalStatus !== 'Rejected' &&
+                            b.ApprovalStatus !== 'Ticket Void' && (
+                              <div className="text-[10px] font-semibold text-amber-700 mt-0.5">
+                                Expires: {b.BookingTimeLimit}
+                              </div>
+                            )}
                         </td>
                         <td className="py-2.5 px-4 text-right">
                           <div className="inline-flex items-center justify-end gap-1.5">
                             {canIssue && (
                               <button
                                 type="button"
+                                disabled={!hasEnoughBalance}
                                 onClick={() =>
                                   askConfirm({
                                     title: 'Issue Ticket?',
-                                    message: `Do you really want to issue ticket for PNR ${b.PNR}? Once issued, it cannot be edited or cancelled.`,
+                                    message: `Do you really want to issue ticket for PNR ${b.PNR}? (${formatCurrencyPKR(b.TotalPrice)} will be deducted from your credit balance.) Once issued, it cannot be edited or cancelled.`,
                                     confirmLabel: 'Yes, Issue Ticket',
                                     variant: 'success',
                                     onConfirm: () => issueTicket(b.AirGroupBookingID)
                                   })
                                 }
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-medium transition cursor-pointer"
+                                title={
+                                  hasEnoughBalance
+                                    ? 'Issue Ticket'
+                                    : `Insufficient credit balance (Need ${formatCurrencyPKR(b.TotalPrice)})`
+                                }
+                                className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition ${
+                                  hasEnoughBalance
+                                    ? 'bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer'
+                                    : 'bg-slate-200 text-slate-500 cursor-not-allowed opacity-70'
+                                }`}
                               >
                                 <CheckCircle2 className="w-3 h-3" />
-                                <span>Issue Ticket</span>
+                                <span>{hasEnoughBalance ? 'Issue Ticket' : 'Low Balance'}</span>
                               </button>
                             )}
                             {canCancel && (
@@ -1558,7 +1580,7 @@ export default function FlightPOS() {
                                 onClick={() =>
                                   askConfirm({
                                     title: 'Cancel Booking?',
-                                    message: `Do you really want to cancel booking PNR ${b.PNR}? This will release the seats and refund your credit balance.`,
+                                    message: `Do you really want to cancel booking PNR ${b.PNR}? This will release the seats back to inventory.`,
                                     confirmLabel: 'Yes, Cancel Booking',
                                     variant: 'danger',
                                     onConfirm: () => cancelBooking(b.AirGroupBookingID)

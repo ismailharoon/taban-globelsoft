@@ -8,10 +8,12 @@ import {
   ChevronDown,
   ChevronRight,
   Banknote,
+  FileSpreadsheet,
+  FileText,
   X
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
-import { formatCurrencyPKR } from '../utils/exporters';
+import { formatCurrencyPKR, formatDateTime, downloadAgentStatementExcel } from '../utils/exporters';
 
 const INITIAL_AGENT_FORM = {
   CompanyName: '',
@@ -53,6 +55,7 @@ const INITIAL_USER_FORM = {
 export default function ManageSubAgents() {
   const {
     subAgents,
+    creditTransactions,
     createSubAgent,
     updateSubAgent,
     topUpSubAgentCredit,
@@ -71,6 +74,15 @@ export default function ManageSubAgents() {
   // Top-Up / Add Credit Modal State
   const [creditTargetAgent, setCreditTargetAgent] = useState(null);
   const [topUpAmount, setTopUpAmount] = useState('');
+
+  // Statement Modal State
+  const [statementAgent, setStatementAgent] = useState(null);
+
+  const getAgentTransactions = (subCompanyId) => {
+    return (creditTransactions || [])
+      .filter((t) => t.SubCompanyID === subCompanyId)
+      .sort((a, b) => String(a.IsoTimestamp || '').localeCompare(String(b.IsoTimestamp || '')));
+  };
 
   const [showUserModal, setShowUserModal] = useState(false);
   const [activeSubCompanyId, setActiveSubCompanyId] = useState(null);
@@ -285,6 +297,27 @@ export default function ManageSubAgents() {
                             >
                               <Banknote className="w-3.5 h-3.5" />
                               <span>+ Add Credit</span>
+                            </button>
+                            <button
+                              onClick={() => setStatementAgent(agent)}
+                              className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                              title="View Credit / Debit Statement"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              <span>Statement</span>
+                            </button>
+                            <button
+                              onClick={() =>
+                                downloadAgentStatementExcel(
+                                  agent,
+                                  getAgentTransactions(agent.SubCompanyID)
+                                )
+                              }
+                              className="px-2.5 py-1 rounded-lg bg-teal-700 hover:bg-teal-800 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                              title="Export Live Statement to Excel (.xlsx)"
+                            >
+                              <FileSpreadsheet className="w-3.5 h-3.5" />
+                              <span>Excel</span>
                             </button>
                             <button
                               onClick={() => openAddUserModal(agent.SubCompanyID)}
@@ -912,6 +945,163 @@ export default function ManageSubAgents() {
           </div>
         </div>
       )}
+
+      {/* AGENT CREDIT / DEBIT STATEMENT MODAL */}
+      {statementAgent && (() => {
+        const txs = getAgentTransactions(statementAgent.SubCompanyID);
+        const totalCredited = txs
+          .filter((t) => t.Type === 'CREDIT')
+          .reduce((sum, t) => sum + (Number(t.Amount) || 0), 0);
+        const totalDebited = txs
+          .filter((t) => t.Type === 'DEBIT')
+          .reduce((sum, t) => sum + (Number(t.Amount) || 0), 0);
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+            <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+              <div className="bg-[#1D314F] text-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <div>
+                  <h5 className="font-semibold text-sm">
+                    Credit &amp; Debit Statement — {statementAgent.CompanyName}
+                  </h5>
+                  <p className="text-[11px] text-white/75">
+                    Agency ID: {statementAgent.SubCompanyID} • Live Account Ledger
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => downloadAgentStatementExcel(statementAgent, txs)}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>Download Excel (.xlsx)</span>
+                  </button>
+                  <button
+                    onClick={() => setStatementAgent(null)}
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-5 overflow-y-auto space-y-4 text-xs">
+                {/* Summary Strip */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                    <div className="text-[10px] font-semibold uppercase text-slate-400">
+                      Total Credit Limit
+                    </div>
+                    <div className="font-mono font-bold text-sm text-[#1B3664] mt-0.5">
+                      {formatCurrencyPKR(statementAgent.CreditLimit)}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                    <div className="text-[10px] font-semibold uppercase text-emerald-700">
+                      Total Credited (+)
+                    </div>
+                    <div className="font-mono font-bold text-sm text-emerald-800 mt-0.5">
+                      {formatCurrencyPKR(totalCredited)}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                    <div className="text-[10px] font-semibold uppercase text-red-700">
+                      Total Ticket Debits (-)
+                    </div>
+                    <div className="font-mono font-bold text-sm text-red-700 mt-0.5">
+                      {formatCurrencyPKR(totalDebited)}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-[#EFF4FB] border border-[#1B3664]/20">
+                    <div className="text-[10px] font-semibold uppercase text-[#1B3664]">
+                      Current Available Balance
+                    </div>
+                    <div className="font-mono font-bold text-sm text-[#1B3664] mt-0.5">
+                      {formatCurrencyPKR(statementAgent.CreditLimitBalance)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Transactions Table */}
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                          <th className="py-2.5 px-3">#</th>
+                          <th className="py-2.5 px-3">Date &amp; Time</th>
+                          <th className="py-2.5 px-3">Type</th>
+                          <th className="py-2.5 px-3">Description / PNR</th>
+                          <th className="py-2.5 px-3 text-right">Prev Balance</th>
+                          <th className="py-2.5 px-3 text-right">Amount</th>
+                          <th className="py-2.5 px-3 text-right">Current Balance</th>
+                          <th className="py-2.5 px-3">By</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {txs.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="py-8 text-center text-slate-400">
+                              No credit or debit transactions recorded yet for this agency.
+                            </td>
+                          </tr>
+                        ) : (
+                          txs.map((tx, idx) => {
+                            const isCredit = tx.Type === 'CREDIT';
+                            return (
+                              <tr key={tx.TransactionID || idx} className="hover:bg-slate-50">
+                                <td className="py-2.5 px-3 font-mono text-slate-500">{idx + 1}</td>
+                                <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600 whitespace-nowrap">
+                                  {tx.DateTime || formatDateTime(tx.IsoTimestamp)}
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                      isCredit
+                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                        : 'bg-red-50 text-red-700 border border-red-200'
+                                    }`}
+                                  >
+                                    {tx.Type}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3 text-slate-800">
+                                  <div>{tx.Description}</div>
+                                  {tx.ReferencePNR && (
+                                    <div className="text-[10px] font-mono text-[#1B3664]">
+                                      PNR: {tx.ReferencePNR}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-mono text-slate-500">
+                                  {formatCurrencyPKR(tx.PreviousBalance)}
+                                </td>
+                                <td
+                                  className={`py-2.5 px-3 text-right font-mono font-bold ${
+                                    isCredit ? 'text-emerald-700' : 'text-red-600'
+                                  }`}
+                                >
+                                  {isCredit ? '+' : '-'} {formatCurrencyPKR(tx.Amount)}
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-mono font-semibold text-[#1B3664]">
+                                  {formatCurrencyPKR(tx.CurrentBalance)}
+                                </td>
+                                <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">
+                                  {tx.PerformedBy || '—'}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

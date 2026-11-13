@@ -358,7 +358,8 @@ function computeEnriched(db) {
     segments,
     flights,
     bookings,
-    subAgents: db.subAgents || []
+    subAgents: db.subAgents || [],
+    creditTransactions: db.creditTransactions || []
   };
 }
 
@@ -420,6 +421,61 @@ export function PortalProvider({ children }) {
       window.removeEventListener('focus', handleFocus);
     };
   }, [fetchRemoteDb]);
+
+  // Auto-cancel expired unissued Sub-Agent bookings (Main Admin / DIRECT bookings never expire)
+  useEffect(() => {
+    const checkExpiredBookings = () => {
+      const nowMs = Date.now();
+      const hasExpired = (dbState.bookings || []).some((b) => {
+        if (!b.SubCompanyID || b.SubCompanyID === 'DIRECT') return false;
+        if (
+          b.ApprovalStatus === 'Ticket Issued' ||
+          b.ApprovalStatus === 'Cancelled' ||
+          b.ApprovalStatus === 'Rejected' ||
+          b.ApprovalStatus === 'Ticket Void'
+        ) {
+          return false;
+        }
+        if (!b.PnrExpiresAt) return false;
+        const expMs = new Date(b.PnrExpiresAt).getTime();
+        return !isNaN(expMs) && nowMs >= expMs;
+      });
+
+      if (!hasExpired) return;
+
+      updateLocalDb((draft) => {
+        const currentMs = Date.now();
+        draft.bookings = (draft.bookings || []).map((b) => {
+          if (!b.SubCompanyID || b.SubCompanyID === 'DIRECT') return b;
+          if (
+            b.ApprovalStatus === 'Ticket Issued' ||
+            b.ApprovalStatus === 'Cancelled' ||
+            b.ApprovalStatus === 'Rejected' ||
+            b.ApprovalStatus === 'Ticket Void'
+          ) {
+            return b;
+          }
+          if (!b.PnrExpiresAt) return b;
+          const expMs = new Date(b.PnrExpiresAt).getTime();
+          if (!isNaN(expMs) && currentMs >= expMs) {
+            return {
+              ...b,
+              ApprovalStatus: 'Cancelled',
+              VoidLoginID: 'SYSTEM (PNR EXPIRED)',
+              VoidDateTime: formatNow(),
+              VoidReason: 'Auto-cancelled: PNR expiry time elapsed before ticket issuance'
+            };
+          }
+          return b;
+        });
+        return draft;
+      });
+    };
+
+    checkExpiredBookings();
+    const expInterval = setInterval(checkExpiredBookings, 15000);
+    return () => clearInterval(expInterval);
+  }, [dbState.bookings, updateLocalDb]);
 
   const saveRemoteDb = useCallback(async (nextState) => {
     isSavingRef.current = true;
@@ -677,6 +733,32 @@ export function PortalProvider({ children }) {
           : `${firstSeg.FlightNumber} • ${firstSeg.DepartureIata} → ${firstSeg.ArrivalIata}`
         : flight?.Title || 'Flight Booking';
 
+    const expiryHoursList = selectedSegments
+      .map((s) => Number(s.PnrExpiryHours) || 0)
+      .filter((h) => h > 0);
+    const pnrExpiryHours = expiryHoursList.length > 0 ? Math.min(...expiryHoursList) : 0;
+    const isAgentBooking = Boolean(resolvedCompanyId && resolvedCompanyId !== 'DIRECT');
+    const nowDate = new Date();
+    const pnrExpiresDate =
+      isAgentBooking && pnrExpiryHours > 0
+        ? new Date(nowDate.getTime() + pnrExpiryHours * 3600 * 1000)
+        : null;
+    const pnrExpiresAt = pnrExpiresDate ? pnrExpiresDate.toISOString() : '';
+    const computedTimeLimit = pnrExpiresDate
+      ? pnrExpiresDate.toLocaleString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })
+      : firstSeg?.DepartureDate
+      ? firstSeg.DepartureDate.replace('T', ' ')
+      : flight?.TimeLimit
+      ? flight.TimeLimit.replace('T', ' ')
+      : '—';
+
     const newBooking = {
       AirGroupBookingID: bookingId,
       AirGroupID: flight ? flight.AirGroupID : `POS-${bookingId}`,
@@ -700,11 +782,10 @@ export function PortalProvider({ children }) {
       ChildCount: children,
       InfantCount: infants,
       TotalPrice: totalPrice,
-      BookingTimeLimit: firstSeg?.DepartureDate
-        ? firstSeg.DepartureDate.replace('T', ' ')
-        : flight?.TimeLimit
-        ? flight.TimeLimit.replace('T', ' ')
-        : '—',
+      PnrExpiryHours: isAgentBooking ? pnrExpiryHours : 0,
+      PnrExpiresAt: pnrExpiresAt,
+      CreatedAtIso: nowDate.toISOString(),
+      BookingTimeLimit: computedTimeLimit,
       ApprovalLoginID: '',
       ApprovalDateTime: '',
       VoidLoginID: '',
@@ -717,14 +798,9 @@ export function PortalProvider({ children }) {
       Passengers: formattedPassengers
     };
 
+    // Booking does NOT deduct agent credit balance; deduction happens only on Ticket Issue
     updateLocalDb((draft) => {
       draft.bookings.unshift(newBooking);
-      if (agent) {
-        const ag = draft.subAgents.find((a) => a.SubCompanyID === agent.SubCompanyID);
-        if (ag) {
-          ag.CreditLimitBalance = Math.max(0, (Number(ag.CreditLimitBalance) || 0) - totalPrice);
-        }
-      }
       return draft;
     });
 
@@ -784,9 +860,69 @@ export function PortalProvider({ children }) {
 
   const issueTicket = async (id) => {
     const loginId = user?.LoginID || 'test';
+    const existingBooking = (dbState.bookings || []).find((b) => b.AirGroupBookingID === id);
+    if (!existingBooking) throw new Error('Booking not found.');
+    if (existingBooking.ApprovalStatus === 'Ticket Issued') {
+      throw new Error('Ticket is already issued.');
+    }
+    if (
+      existingBooking.ApprovalStatus === 'Cancelled' ||
+      existingBooking.ApprovalStatus === 'Rejected' ||
+      existingBooking.ApprovalStatus === 'Ticket Void'
+    ) {
+      throw new Error('Cannot issue a cancelled, rejected, or voided booking.');
+    }
+
+    if (existingBooking.SubCompanyID && existingBooking.SubCompanyID !== 'DIRECT') {
+      if (existingBooking.PnrExpiresAt) {
+        const expMs = new Date(existingBooking.PnrExpiresAt).getTime();
+        if (!isNaN(expMs) && Date.now() >= expMs) {
+          throw new Error('PNR has expired and cannot be issued.');
+        }
+      }
+      const agCheck = (dbState.subAgents || []).find(
+        (a) => a.SubCompanyID === existingBooking.SubCompanyID
+      );
+      const fare = Number(existingBooking.TotalPrice) || 0;
+      const curBal = Number(agCheck?.CreditLimitBalance) || 0;
+      if (agCheck && curBal < fare) {
+        throw new Error(
+          `Insufficient credit balance. Required PKR ${fare.toLocaleString('en-US')}, available PKR ${curBal.toLocaleString('en-US')}.`
+        );
+      }
+    }
+
     updateLocalDb((draft) => {
       const booking = draft.bookings.find((b) => b.AirGroupBookingID === id);
-      if (booking) {
+      if (booking && booking.ApprovalStatus !== 'Ticket Issued') {
+        if (booking.SubCompanyID && booking.SubCompanyID !== 'DIRECT') {
+          const ag = draft.subAgents.find((a) => a.SubCompanyID === booking.SubCompanyID);
+          if (ag) {
+            const fare = Number(booking.TotalPrice) || 0;
+            const prevBal = Number(ag.CreditLimitBalance) || 0;
+            if (prevBal < fare) {
+              return draft;
+            }
+            const nextBal = prevBal - fare;
+            ag.CreditLimitBalance = nextBal;
+            draft.creditTransactions = draft.creditTransactions || [];
+            draft.creditTransactions.push({
+              TransactionID: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              SubCompanyID: ag.SubCompanyID,
+              CompanyName: ag.CompanyName,
+              DateTime: formatNow(),
+              IsoTimestamp: new Date().toISOString(),
+              Type: 'DEBIT',
+              Description: `Ticket Issued — PNR ${booking.PNR} (${booking.FlightTitle || ''})`,
+              ReferencePNR: booking.PNR,
+              PreviousBalance: prevBal,
+              Amount: fare,
+              CurrentBalance: nextBal,
+              PerformedBy: loginId
+            });
+          }
+        }
+
         booking.ApprovalStatus = 'Ticket Issued';
         if (!booking.ApprovalLoginID) booking.ApprovalLoginID = loginId;
         booking.ApprovalDateTime = formatNow();
@@ -832,13 +968,6 @@ export function PortalProvider({ children }) {
         booking.VoidLoginID = loginId;
         booking.VoidDateTime = formatNow();
         booking.VoidReason = 'Cancelled by Agent before Ticket Issuance';
-        if (booking.SubCompanyID && booking.SubCompanyID !== 'DIRECT') {
-          const ag = draft.subAgents.find((a) => a.SubCompanyID === booking.SubCompanyID);
-          if (ag) {
-            ag.CreditLimitBalance =
-              (Number(ag.CreditLimitBalance) || 0) + (Number(booking.TotalPrice) || 0);
-          }
-        }
       }
       return draft;
     });
@@ -1008,6 +1137,23 @@ export function PortalProvider({ children }) {
     };
     updateLocalDb((draft) => {
       draft.subAgents.unshift(newAgent);
+      if (newAgent.CreditLimitBalance > 0) {
+        draft.creditTransactions = draft.creditTransactions || [];
+        draft.creditTransactions.push({
+          TransactionID: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          SubCompanyID: newAgent.SubCompanyID,
+          CompanyName: newAgent.CompanyName,
+          DateTime: formatNow(),
+          IsoTimestamp: new Date().toISOString(),
+          Type: 'CREDIT',
+          Description: 'Initial Credit Limit Assigned by Admin',
+          ReferencePNR: '',
+          PreviousBalance: 0,
+          Amount: newAgent.CreditLimitBalance,
+          CurrentBalance: newAgent.CreditLimitBalance,
+          PerformedBy: user?.LoginID || 'admin'
+        });
+      }
       return draft;
     });
     addToast('SubAgent created successfully.', 'success');
@@ -1037,12 +1183,32 @@ export function PortalProvider({ children }) {
           nextBalance = Math.max(0, (Number(existing.CreditLimitBalance) || 0) + delta);
         }
 
+        const prevBal = Number(existing.CreditLimitBalance) || 0;
         draft.subAgents[idx] = {
           ...existing,
           ...payload,
           CreditLimit: nextLimit,
           CreditLimitBalance: nextBalance
         };
+        if (nextBalance !== prevBal) {
+          const diff = nextBalance - prevBal;
+          draft.creditTransactions = draft.creditTransactions || [];
+          draft.creditTransactions.push({
+            TransactionID: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            SubCompanyID: existing.SubCompanyID,
+            CompanyName: payload.CompanyName || existing.CompanyName,
+            DateTime: formatNow(),
+            IsoTimestamp: new Date().toISOString(),
+            Type: diff > 0 ? 'CREDIT' : 'DEBIT',
+            Description:
+              diff > 0 ? 'Credit Adjusted (+ by Admin)' : 'Credit Adjusted (- by Admin)',
+            ReferencePNR: '',
+            PreviousBalance: prevBal,
+            Amount: Math.abs(diff),
+            CurrentBalance: nextBalance,
+            PerformedBy: user?.LoginID || 'admin'
+          });
+        }
       }
       return draft;
     });
@@ -1057,8 +1223,25 @@ export function PortalProvider({ children }) {
     updateLocalDb((draft) => {
       const ag = draft.subAgents.find((a) => a.SubCompanyID === id);
       if (ag) {
+        const prevBal = Number(ag.CreditLimitBalance) || 0;
+        const nextBal = prevBal + amount;
         ag.CreditLimit = (Number(ag.CreditLimit) || 0) + amount;
-        ag.CreditLimitBalance = (Number(ag.CreditLimitBalance) || 0) + amount;
+        ag.CreditLimitBalance = nextBal;
+        draft.creditTransactions = draft.creditTransactions || [];
+        draft.creditTransactions.push({
+          TransactionID: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          SubCompanyID: ag.SubCompanyID,
+          CompanyName: ag.CompanyName,
+          DateTime: formatNow(),
+          IsoTimestamp: new Date().toISOString(),
+          Type: 'CREDIT',
+          Description: 'Credit Top-Up Added by Admin',
+          ReferencePNR: '',
+          PreviousBalance: prevBal,
+          Amount: amount,
+          CurrentBalance: nextBal,
+          PerformedBy: user?.LoginID || 'admin'
+        });
       }
       return draft;
     });
@@ -1137,6 +1320,12 @@ export function PortalProvider({ children }) {
     return enriched.subAgents.filter((a) => a.SubCompanyID === user.SubCompanyID);
   }, [enriched.subAgents, isSubAgent, user]);
 
+  const visibleCreditTransactions = React.useMemo(() => {
+    const list = enriched.creditTransactions || [];
+    if (!isSubAgent) return list;
+    return list.filter((t) => t.SubCompanyID === user.SubCompanyID);
+  }, [enriched.creditTransactions, isSubAgent, user]);
+
   const visibleStats = React.useMemo(() => {
     if (!isSubAgent) return enriched.stats;
     const validOwnBookings = visibleBookings.filter(
@@ -1175,6 +1364,7 @@ export function PortalProvider({ children }) {
         flights: enriched.flights,
         bookings: visibleBookings,
         subAgents: visibleSubAgents,
+        creditTransactions: visibleCreditTransactions,
         login,
         verifyOtpAndFinishLogin,
         logout,

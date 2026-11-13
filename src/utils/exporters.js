@@ -594,3 +594,173 @@ export function downloadWordManifest(segment, passengers = []) {
 
   triggerBlobDownload(blob, filename);
 }
+
+/**
+ * Generates an authentic OpenXML .xlsx Credit/Debit Statement for a Partner Agency
+ */
+export function downloadAgentStatementExcel(agent, transactions = []) {
+  const safeName = String(agent?.CompanyName || 'Agent')
+    .replace(/[^a-zA-Z0-9_-]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  const dateToken = new Date().toISOString().slice(0, 10);
+  const filename = `${safeName}_Credit_Statement_${dateToken}.xlsx`;
+
+  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+  const sharedStrings = [];
+  const sharedMap = new Map();
+  let totalStringRefs = 0;
+
+  const getSharedStringIndex = (val) => {
+    const str = String(val ?? '');
+    totalStringRefs += 1;
+    if (sharedMap.has(str)) return sharedMap.get(str);
+    const idx = sharedStrings.length;
+    sharedStrings.push(str);
+    sharedMap.set(str, idx);
+    return idx;
+  };
+
+  const makeStringCell = (cellRef, styleIdx, text) => {
+    const str = String(text ?? '');
+    if (str === '') return `<c r="${cellRef}" s="${styleIdx}"/>`;
+    const sIdx = getSharedStringIndex(str);
+    return `<c r="${cellRef}" s="${styleIdx}" t="s"><v>${sIdx}</v></c>`;
+  };
+
+  const makeNumberCell = (cellRef, styleIdx, numVal) => {
+    return `<c r="${cellRef}" s="${styleIdx}"><v>${Number(numVal) || 0}</v></c>`;
+  };
+
+  const xmlRows = [];
+
+  // Row 1: Agency summary headers (grey s="1")
+  const summaryHeaders = [
+    'Agency Name',
+    'Agency ID',
+    'Total Credit Limit (PKR)',
+    'Current Available Balance (PKR)',
+    'Statement Generated'
+  ];
+  xmlRows.push(
+    `<row r="1">${summaryHeaders
+      .map((h, i) => makeStringCell(`${cols[i]}1`, 1, h))
+      .join('')}</row>`
+  );
+
+  // Row 2: Agency summary values (yellow s="2")
+  xmlRows.push(
+    `<row r="2">${[
+      makeStringCell('A2', 2, agent?.CompanyName || ''),
+      makeStringCell('B2', 2, agent?.SubCompanyID || ''),
+      makeNumberCell('C2', 2, Number(agent?.CreditLimit) || 0),
+      makeNumberCell('D2', 2, Number(agent?.CreditLimitBalance) || 0),
+      makeStringCell('E2', 2, formatDateTime(new Date().toISOString()))
+    ].join('')}</row>`
+  );
+
+  // Row 4: Statement table headers (grey s="1")
+  const tableHeaders = [
+    '#',
+    'Date & Time',
+    'Type',
+    'Description',
+    'PNR',
+    'Previous Balance (PKR)',
+    'Credit (+ PKR)',
+    'Debit (- PKR)',
+    'Current Balance (PKR)',
+    'Performed By'
+  ];
+  xmlRows.push(
+    `<row r="4">${tableHeaders
+      .map((h, i) => makeStringCell(`${cols[i]}4`, 1, h))
+      .join('')}</row>`
+  );
+
+  const sorted = [...(transactions || [])].sort((a, b) =>
+    String(a.IsoTimestamp || '').localeCompare(String(b.IsoTimestamp || ''))
+  );
+
+  sorted.forEach((tx, idx) => {
+    const r = idx + 5;
+    const isCredit = tx.Type === 'CREDIT';
+    const cells = [
+      makeNumberCell(`A${r}`, 0, idx + 1),
+      makeStringCell(`B${r}`, 0, tx.DateTime || formatDateTime(tx.IsoTimestamp)),
+      makeStringCell(`C${r}`, 0, tx.Type || ''),
+      makeStringCell(`D${r}`, 0, tx.Description || ''),
+      makeStringCell(`E${r}`, 0, tx.ReferencePNR || '—'),
+      makeNumberCell(`F${r}`, 0, Number(tx.PreviousBalance) || 0),
+      makeNumberCell(`G${r}`, 0, isCredit ? Number(tx.Amount) || 0 : 0),
+      makeNumberCell(`H${r}`, 0, !isCredit ? Number(tx.Amount) || 0 : 0),
+      makeNumberCell(`I${r}`, 0, Number(tx.CurrentBalance) || 0),
+      makeStringCell(`J${r}`, 0, tx.PerformedBy || '—')
+    ].join('');
+    xmlRows.push(`<row r="${r}">${cells}</row>`);
+  });
+
+  const lastRow = Math.max(4, sorted.length + 4);
+  const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <dimension ref="A1:J${lastRow}"/>
+  <sheetViews><sheetView tabSelected="1" workbookViewId="0"/></sheetViews>
+  <sheetFormatPr defaultRowHeight="16"/>
+  <cols>
+    <col min="1" max="1" width="6" customWidth="1"/>
+    <col min="2" max="2" width="22" customWidth="1"/>
+    <col min="3" max="3" width="10" customWidth="1"/>
+    <col min="4" max="4" width="42" customWidth="1"/>
+    <col min="5" max="5" width="12" customWidth="1"/>
+    <col min="6" max="9" width="20" customWidth="1"/>
+    <col min="10" max="10" width="16" customWidth="1"/>
+  </cols>
+  <sheetData>${xmlRows.join('')}</sheetData>
+</worksheet>`;
+
+  const sharedStringsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${totalStringRefs}" uniqueCount="${sharedStrings.length}">
+  ${sharedStrings.map((s) => `<si><t xml:space="preserve">${escapeXml(s)}</t></si>`).join('')}
+</sst>`;
+
+  const workbookXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="Credit Statement" sheetId="1" r:id="rId1"/></sheets>
+</workbook>`;
+
+  const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.sharedStrings+xml"/>
+</Types>`;
+
+  const rootRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`;
+
+  const wbRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
+</Relationships>`;
+
+  const blob = createZipBlob(
+    [
+      { name: '[Content_Types].xml', content: contentTypesXml },
+      { name: '_rels/.rels', content: rootRelsXml },
+      { name: 'xl/_rels/workbook.xml.rels', content: wbRelsXml },
+      { name: 'xl/workbook.xml', content: workbookXml },
+      { name: 'xl/styles.xml', content: REFERENCE_EXCEL_STYLES_XML },
+      { name: 'xl/sharedStrings.xml', content: sharedStringsXml },
+      { name: 'xl/worksheets/sheet1.xml', content: sheetXml }
+    ],
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+
+  triggerBlobDownload(blob, filename);
+}

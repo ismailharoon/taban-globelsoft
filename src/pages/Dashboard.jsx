@@ -217,6 +217,8 @@ export default function Dashboard() {
                         b.ApprovalStatus !== 'Cancelled' &&
                         b.ApprovalStatus !== 'Rejected' &&
                         b.ApprovalStatus !== 'Ticket Void';
+                      const hasEnoughBalance =
+                        !myAgent || (Number(myAgent.CreditLimitBalance) || 0) >= (Number(b.TotalPrice) || 0);
                       return (
                         <React.Fragment key={b.AirGroupBookingID}>
                           <tr className="hover:bg-slate-50 transition">
@@ -249,6 +251,15 @@ export default function Dashboard() {
                                   ? `Issue Date: ${b.ApprovalDateTime || b.TimeStamp}`
                                   : `Booking Date: ${b.TimeStamp}`}
                               </div>
+                              {!isIssued &&
+                                b.PnrExpiresAt &&
+                                b.ApprovalStatus !== 'Cancelled' &&
+                                b.ApprovalStatus !== 'Rejected' &&
+                                b.ApprovalStatus !== 'Ticket Void' && (
+                                  <div className="text-[10px] font-semibold text-amber-700 mt-0.5">
+                                    PNR Expires: {b.BookingTimeLimit}
+                                  </div>
+                                )}
                             </td>
                             <td className="py-2.5 px-3 text-center font-mono">
                               {b.AdultCount || 0}A / {b.ChildCount || 0}C / {b.InfantCount || 0}I
@@ -277,19 +288,29 @@ export default function Dashboard() {
                               <div className="inline-flex items-center justify-end gap-1.5">
                                 {canIssue && (
                                   <button
+                                    disabled={!hasEnoughBalance}
                                     onClick={() =>
                                       askConfirm({
                                         title: 'Confirm Issue Ticket',
-                                        message: `Do you really want to issue e-tickets for PNR ${b.PNR}?`,
+                                        message: `Do you really want to issue e-tickets for PNR ${b.PNR}? (${formatCurrencyPKR(b.TotalPrice)} will be deducted from your credit balance.)`,
                                         confirmLabel: 'Yes, Issue Ticket',
                                         variant: 'emerald',
                                         action: () => issueTicket(b.AirGroupBookingID)
                                       })
                                     }
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-medium transition cursor-pointer"
+                                    title={
+                                      hasEnoughBalance
+                                        ? 'Issue E-Ticket'
+                                        : `Insufficient credit balance (Need ${formatCurrencyPKR(b.TotalPrice)})`
+                                    }
+                                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition ${
+                                      hasEnoughBalance
+                                        ? 'bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer'
+                                        : 'bg-slate-200 text-slate-500 cursor-not-allowed opacity-70'
+                                    }`}
                                   >
                                     <Ticket className="w-3 h-3" />
-                                    <span>Issue Ticket</span>
+                                    <span>{hasEnoughBalance ? 'Issue Ticket' : 'Low Balance'}</span>
                                   </button>
                                 )}
                                 {canCancel && (
@@ -297,7 +318,7 @@ export default function Dashboard() {
                                     onClick={() =>
                                       askConfirm({
                                         title: 'Confirm Cancel Booking',
-                                        message: `Do you really want to cancel booking PNR ${b.PNR}? Seats will be released and your credit balance refunded.`,
+                                        message: `Do you really want to cancel booking PNR ${b.PNR}? Seats will be released back to inventory.`,
                                         confirmLabel: 'Yes, Cancel Booking',
                                         variant: 'danger',
                                         action: () => cancelBooking(b.AirGroupBookingID)
