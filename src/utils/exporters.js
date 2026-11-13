@@ -598,14 +598,23 @@ export function downloadWordManifest(segment, passengers = []) {
 /**
  * Generates an authentic OpenXML .xlsx Credit/Debit Statement for a Partner Agency
  */
-export function downloadAgentStatementExcel(agent, transactions = []) {
+export function downloadAgentStatementExcel(agent, transactions = [], dateRange = {}) {
   const safeName = String(agent?.CompanyName || 'Agent')
     .replace(/[^a-zA-Z0-9_-]+/g, '_')
     .replace(/^_+|_+$/g, '');
   const dateToken = new Date().toISOString().slice(0, 10);
-  const filename = `${safeName}_Credit_Statement_${dateToken}.xlsx`;
+  const filename = `${safeName}_Statement_${dateToken}.xlsx`;
 
-  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+  const formatSlashDate = (isoOrDate) => {
+    const d = isoOrDate ? new Date(isoOrDate) : new Date();
+    if (isNaN(d.getTime())) return '';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  };
+
+  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
   const sharedStrings = [];
   const sharedMap = new Map();
   let totalStringRefs = 0;
@@ -631,88 +640,115 @@ export function downloadAgentStatementExcel(agent, transactions = []) {
     return `<c r="${cellRef}" s="${styleIdx}"><v>${Number(numVal) || 0}</v></c>`;
   };
 
-  const xmlRows = [];
-
-  // Row 1: Agency summary headers (grey s="1")
-  const summaryHeaders = [
-    'Agency Name',
-    'Agency ID',
-    'Total Credit Limit (PKR)',
-    'Current Available Balance (PKR)',
-    'Statement Generated'
-  ];
-  xmlRows.push(
-    `<row r="1">${summaryHeaders
-      .map((h, i) => makeStringCell(`${cols[i]}1`, 1, h))
-      .join('')}</row>`
-  );
-
-  // Row 2: Agency summary values (yellow s="2")
-  xmlRows.push(
-    `<row r="2">${[
-      makeStringCell('A2', 2, agent?.CompanyName || ''),
-      makeStringCell('B2', 2, agent?.SubCompanyID || ''),
-      makeNumberCell('C2', 2, Number(agent?.CreditLimit) || 0),
-      makeNumberCell('D2', 2, Number(agent?.CreditLimitBalance) || 0),
-      makeStringCell('E2', 2, formatDateTime(new Date().toISOString()))
-    ].join('')}</row>`
-  );
-
-  // Row 4: Statement table headers (grey s="1")
-  const tableHeaders = [
-    '#',
-    'Date & Time',
-    'Type',
-    'Description',
-    'PNR',
-    'Previous Balance (PKR)',
-    'Credit (+ PKR)',
-    'Debit (- PKR)',
-    'Current Balance (PKR)',
-    'Performed By'
-  ];
-  xmlRows.push(
-    `<row r="4">${tableHeaders
-      .map((h, i) => makeStringCell(`${cols[i]}4`, 1, h))
-      .join('')}</row>`
-  );
-
   const sorted = [...(transactions || [])].sort((a, b) =>
     String(a.IsoTimestamp || '').localeCompare(String(b.IsoTimestamp || ''))
   );
 
+  const fromLabel = dateRange?.from
+    ? formatSlashDate(dateRange.from)
+    : sorted.length > 0
+    ? formatSlashDate(sorted[0].IsoTimestamp)
+    : formatSlashDate(new Date());
+  const toLabel = dateRange?.to
+    ? formatSlashDate(dateRange.to)
+    : sorted.length > 0
+    ? formatSlashDate(sorted[sorted.length - 1].IsoTimestamp)
+    : formatSlashDate(new Date());
+
+  const xmlRows = [];
+
+  // Row 1: BOOKLY / Statement
+  xmlRows.push(
+    `<row r="1">${makeStringCell('A1', 1, 'BOOKLY')}${makeStringCell('G1', 1, 'Statement')}</row>`
+  );
+  // Row 2: Date Range
+  xmlRows.push(
+    `<row r="2">${makeStringCell('G2', 0, `From: ${fromLabel} to ${toLabel}`)}</row>`
+  );
+  // Row 3: Address / Agent Name
+  const fullAddr = [agent?.Address, agent?.City, agent?.Country].filter(Boolean).join(', ');
+  xmlRows.push(
+    `<row r="3">${makeStringCell('A3', 0, `ADDRESS: ${fullAddr || '—'}`)}${makeStringCell(
+      'G3',
+      1,
+      `AGENT : ${String(agent?.CompanyName || '').toUpperCase()}`
+    )}</row>`
+  );
+  // Row 4: Phone
+  xmlRows.push(
+    `<row r="4">${makeStringCell('A4', 0, `Phone: ${agent?.MobileNumber || ''}`)}</row>`
+  );
+  // Row 5: Email
+  xmlRows.push(
+    `<row r="5">${makeStringCell('A5', 0, `Email: ${agent?.Email || ''}`)}</row>`
+  );
+
+  // Row 6: Table headers (Yellow fill s="2")
+  const tableHeaders = [
+    'N.NO',
+    'DATE',
+    'VOUCHER',
+    'PNR',
+    'DETAILS OF TRANSACTION',
+    'DEBIT AMT',
+    'CREDIT AMT',
+    'BALANCE .CR'
+  ];
+  xmlRows.push(
+    `<row r="6">${tableHeaders
+      .map((h, i) => makeStringCell(`${cols[i]}6`, 2, h))
+      .join('')}</row>`
+  );
+
+  // Row 7: OPENING BALANCE row
+  const openingBal =
+    sorted.length > 0
+      ? Number(sorted[0].PreviousBalance) || 0
+      : Number(agent?.CreditLimitBalance) || 0;
+  xmlRows.push(
+    `<row r="7">${[
+      makeStringCell('A7', 0, ''),
+      makeStringCell('B7', 0, ''),
+      makeStringCell('C7', 1, 'OPENING'),
+      makeStringCell('D7', 0, ''),
+      makeStringCell('E7', 1, 'OPENING BALANCE .CR.....'),
+      makeStringCell('F7', 0, ''),
+      makeStringCell('G7', 0, ''),
+      makeNumberCell('H7', 1, openingBal)
+    ].join('')}</row>`
+  );
+
   sorted.forEach((tx, idx) => {
-    const r = idx + 5;
+    const r = idx + 8;
     const isCredit = tx.Type === 'CREDIT';
+    const voucher = tx.Voucher || (isCredit ? 'RV' : 'SALE');
+    const slashDate = formatSlashDate(tx.IsoTimestamp) || tx.DateTime || '';
     const cells = [
       makeNumberCell(`A${r}`, 0, idx + 1),
-      makeStringCell(`B${r}`, 0, tx.DateTime || formatDateTime(tx.IsoTimestamp)),
-      makeStringCell(`C${r}`, 0, tx.Type || ''),
-      makeStringCell(`D${r}`, 0, tx.Description || ''),
-      makeStringCell(`E${r}`, 0, tx.ReferencePNR || '—'),
-      makeNumberCell(`F${r}`, 0, Number(tx.PreviousBalance) || 0),
-      makeNumberCell(`G${r}`, 0, isCredit ? Number(tx.Amount) || 0 : 0),
-      makeNumberCell(`H${r}`, 0, !isCredit ? Number(tx.Amount) || 0 : 0),
-      makeNumberCell(`I${r}`, 0, Number(tx.CurrentBalance) || 0),
-      makeStringCell(`J${r}`, 0, tx.PerformedBy || '—')
+      makeStringCell(`B${r}`, 0, slashDate),
+      makeStringCell(`C${r}`, 0, voucher),
+      makeStringCell(`D${r}`, 0, tx.ReferencePNR || ''),
+      makeStringCell(`E${r}`, 0, tx.Description || ''),
+      isCredit ? makeStringCell(`F${r}`, 0, '') : makeNumberCell(`F${r}`, 0, tx.Amount),
+      isCredit ? makeNumberCell(`G${r}`, 0, tx.Amount) : makeStringCell(`G${r}`, 0, ''),
+      makeNumberCell(`H${r}`, 0, Number(tx.CurrentBalance) || 0)
     ].join('');
     xmlRows.push(`<row r="${r}">${cells}</row>`);
   });
 
-  const lastRow = Math.max(4, sorted.length + 4);
+  const lastRow = Math.max(7, sorted.length + 7);
   const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:J${lastRow}"/>
+  <dimension ref="A1:H${lastRow}"/>
   <sheetViews><sheetView tabSelected="1" workbookViewId="0"/></sheetViews>
   <sheetFormatPr defaultRowHeight="16"/>
   <cols>
-    <col min="1" max="1" width="6" customWidth="1"/>
-    <col min="2" max="2" width="22" customWidth="1"/>
-    <col min="3" max="3" width="10" customWidth="1"/>
-    <col min="4" max="4" width="42" customWidth="1"/>
-    <col min="5" max="5" width="12" customWidth="1"/>
-    <col min="6" max="9" width="20" customWidth="1"/>
-    <col min="10" max="10" width="16" customWidth="1"/>
+    <col min="1" max="1" width="8" customWidth="1"/>
+    <col min="2" max="2" width="14" customWidth="1"/>
+    <col min="3" max="3" width="12" customWidth="1"/>
+    <col min="4" max="4" width="12" customWidth="1"/>
+    <col min="5" max="5" width="46" customWidth="1"/>
+    <col min="6" max="8" width="16" customWidth="1"/>
   </cols>
   <sheetData>${xmlRows.join('')}</sheetData>
 </worksheet>`;

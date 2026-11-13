@@ -77,11 +77,22 @@ export default function ManageSubAgents() {
 
   // Statement Modal State
   const [statementAgent, setStatementAgent] = useState(null);
+  const [statementFrom, setStatementFrom] = useState('');
+  const [statementTo, setStatementTo] = useState('');
 
   const getAgentTransactions = (subCompanyId) => {
     return (creditTransactions || [])
       .filter((t) => t.SubCompanyID === subCompanyId)
       .sort((a, b) => String(a.IsoTimestamp || '').localeCompare(String(b.IsoTimestamp || '')));
+  };
+
+  const formatSlashDate = (isoOrDate) => {
+    const d = isoOrDate ? new Date(isoOrDate) : new Date();
+    if (isNaN(d.getTime())) return '—';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
   };
 
   const [showUserModal, setShowUserModal] = useState(false);
@@ -948,13 +959,23 @@ export default function ManageSubAgents() {
 
       {/* AGENT CREDIT / DEBIT STATEMENT MODAL */}
       {statementAgent && (() => {
-        const txs = getAgentTransactions(statementAgent.SubCompanyID);
+        const allTxs = getAgentTransactions(statementAgent.SubCompanyID);
+        const txs = allTxs.filter((t) => {
+          const day = String(t.IsoTimestamp || '').slice(0, 10);
+          if (statementFrom && day && day < statementFrom) return false;
+          if (statementTo && day && day > statementTo) return false;
+          return true;
+        });
         const totalCredited = txs
           .filter((t) => t.Type === 'CREDIT')
           .reduce((sum, t) => sum + (Number(t.Amount) || 0), 0);
         const totalDebited = txs
           .filter((t) => t.Type === 'DEBIT')
           .reduce((sum, t) => sum + (Number(t.Amount) || 0), 0);
+        const openingBal =
+          txs.length > 0
+            ? Number(txs[0].PreviousBalance) || 0
+            : Number(statementAgent.CreditLimitBalance) || 0;
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
@@ -962,15 +983,36 @@ export default function ManageSubAgents() {
               <div className="bg-[#1D314F] text-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <div>
                   <h5 className="font-semibold text-sm">
-                    Credit &amp; Debit Statement — {statementAgent.CompanyName}
+                    BOOKLY Statement — {statementAgent.CompanyName}
                   </h5>
                   <p className="text-[11px] text-white/75">
                     Agency ID: {statementAgent.SubCompanyID} • Live Account Ledger
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-lg text-[11px]">
+                    <span>From:</span>
+                    <input
+                      type="date"
+                      value={statementFrom}
+                      onChange={(e) => setStatementFrom(e.target.value)}
+                      className="bg-transparent text-white border-b border-white/30 focus:outline-none text-[11px]"
+                    />
+                    <span>To:</span>
+                    <input
+                      type="date"
+                      value={statementTo}
+                      onChange={(e) => setStatementTo(e.target.value)}
+                      className="bg-transparent text-white border-b border-white/30 focus:outline-none text-[11px]"
+                    />
+                  </div>
                   <button
-                    onClick={() => downloadAgentStatementExcel(statementAgent, txs)}
+                    onClick={() =>
+                      downloadAgentStatementExcel(statementAgent, txs, {
+                        from: statementFrom,
+                        to: statementTo
+                      })
+                    }
                     className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer"
                   >
                     <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -1022,23 +1064,35 @@ export default function ManageSubAgents() {
                   </div>
                 </div>
 
-                {/* Transactions Table */}
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                {/* Transactions Table matching Statement format */}
+                <div className="border border-slate-300 rounded-xl overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
-                          <th className="py-2.5 px-3">#</th>
-                          <th className="py-2.5 px-3">Date &amp; Time</th>
-                          <th className="py-2.5 px-3">Type</th>
-                          <th className="py-2.5 px-3">Description / PNR</th>
-                          <th className="py-2.5 px-3 text-right">Prev Balance</th>
-                          <th className="py-2.5 px-3 text-right">Amount</th>
-                          <th className="py-2.5 px-3 text-right">Current Balance</th>
-                          <th className="py-2.5 px-3">By</th>
+                        <tr className="bg-amber-300 text-slate-900 font-bold border-b border-slate-300 text-[11px] uppercase">
+                          <th className="py-2.5 px-3 border-r border-slate-300">N.NO</th>
+                          <th className="py-2.5 px-3 border-r border-slate-300">DATE</th>
+                          <th className="py-2.5 px-3 border-r border-slate-300">VOUCHER</th>
+                          <th className="py-2.5 px-3 border-r border-slate-300">PNR</th>
+                          <th className="py-2.5 px-3 border-r border-slate-300">DETAILS OF TRANSACTION</th>
+                          <th className="py-2.5 px-3 border-r border-slate-300 text-right">DEBIT AMT</th>
+                          <th className="py-2.5 px-3 border-r border-slate-300 text-right">CREDIT AMT</th>
+                          <th className="py-2.5 px-3 text-right">BALANCE .CR</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-slate-200">
+                        <tr className="bg-slate-50 font-semibold">
+                          <td className="py-2 px-3 border-r border-slate-200"></td>
+                          <td className="py-2 px-3 border-r border-slate-200"></td>
+                          <td className="py-2 px-3 border-r border-slate-200 font-mono">OPENING</td>
+                          <td className="py-2 px-3 border-r border-slate-200"></td>
+                          <td className="py-2 px-3 border-r border-slate-200">OPENING BALANCE .CR.....</td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-right"></td>
+                          <td className="py-2 px-3 border-r border-slate-200 text-right"></td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-[#1B3664]">
+                            {Number(openingBal).toLocaleString('en-US')}
+                          </td>
+                        </tr>
                         {txs.length === 0 ? (
                           <tr>
                             <td colSpan={8} className="py-8 text-center text-slate-400">
@@ -1048,46 +1102,40 @@ export default function ManageSubAgents() {
                         ) : (
                           txs.map((tx, idx) => {
                             const isCredit = tx.Type === 'CREDIT';
+                            const voucher = tx.Voucher || (isCredit ? 'RV' : 'SALE');
                             return (
                               <tr key={tx.TransactionID || idx} className="hover:bg-slate-50">
-                                <td className="py-2.5 px-3 font-mono text-slate-500">{idx + 1}</td>
-                                <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600 whitespace-nowrap">
-                                  {tx.DateTime || formatDateTime(tx.IsoTimestamp)}
+                                <td className="py-2 px-3 border-r border-slate-200 font-mono text-slate-600">
+                                  {idx + 1}
                                 </td>
-                                <td className="py-2.5 px-3">
+                                <td className="py-2 px-3 border-r border-slate-200 font-mono text-[11px] text-slate-700 whitespace-nowrap">
+                                  {formatSlashDate(tx.IsoTimestamp)}
+                                </td>
+                                <td className="py-2 px-3 border-r border-slate-200 font-mono font-semibold">
                                   <span
-                                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                                       isCredit
-                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                        : 'bg-red-50 text-red-700 border border-red-200'
+                                        ? 'bg-emerald-50 text-emerald-700'
+                                        : 'bg-blue-50 text-[#1B3664]'
                                     }`}
                                   >
-                                    {tx.Type}
+                                    {voucher}
                                   </span>
                                 </td>
-                                <td className="py-2.5 px-3 text-slate-800">
-                                  <div>{tx.Description}</div>
-                                  {tx.ReferencePNR && (
-                                    <div className="text-[10px] font-mono text-[#1B3664]">
-                                      PNR: {tx.ReferencePNR}
-                                    </div>
-                                  )}
+                                <td className="py-2 px-3 border-r border-slate-200 font-mono font-semibold text-[#1B3664]">
+                                  {tx.ReferencePNR || ''}
                                 </td>
-                                <td className="py-2.5 px-3 text-right font-mono text-slate-500">
-                                  {formatCurrencyPKR(tx.PreviousBalance)}
+                                <td className="py-2 px-3 border-r border-slate-200 text-slate-800">
+                                  {tx.Description}
                                 </td>
-                                <td
-                                  className={`py-2.5 px-3 text-right font-mono font-bold ${
-                                    isCredit ? 'text-emerald-700' : 'text-red-600'
-                                  }`}
-                                >
-                                  {isCredit ? '+' : '-'} {formatCurrencyPKR(tx.Amount)}
+                                <td className="py-2 px-3 border-r border-slate-200 text-right font-mono font-semibold text-red-600">
+                                  {!isCredit ? Number(tx.Amount || 0).toLocaleString('en-US') : ''}
                                 </td>
-                                <td className="py-2.5 px-3 text-right font-mono font-semibold text-[#1B3664]">
-                                  {formatCurrencyPKR(tx.CurrentBalance)}
+                                <td className="py-2 px-3 border-r border-slate-200 text-right font-mono font-semibold text-emerald-700">
+                                  {isCredit ? Number(tx.Amount || 0).toLocaleString('en-US') : ''}
                                 </td>
-                                <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">
-                                  {tx.PerformedBy || '—'}
+                                <td className="py-2 px-3 text-right font-mono font-bold text-[#1B3664]">
+                                  {Number(tx.CurrentBalance || 0).toLocaleString('en-US')}
                                 </td>
                               </tr>
                             );

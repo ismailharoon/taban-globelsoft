@@ -905,6 +905,13 @@ export function PortalProvider({ children }) {
             }
             const nextBal = prevBal - fare;
             ag.CreditLimitBalance = nextBal;
+            const paxCount =
+              (Number(booking.AdultCount) || 0) +
+                (Number(booking.ChildCount) || 0) +
+                (Number(booking.InfantCount) || 0) ||
+              (booking.Passengers || []).length ||
+              1;
+            const tripLabel = String(booking.TripType || 'ONE WAY').toUpperCase();
             draft.creditTransactions = draft.creditTransactions || [];
             draft.creditTransactions.push({
               TransactionID: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -912,8 +919,9 @@ export function PortalProvider({ children }) {
               CompanyName: ag.CompanyName,
               DateTime: formatNow(),
               IsoTimestamp: new Date().toISOString(),
+              Voucher: 'SALE',
               Type: 'DEBIT',
-              Description: `Ticket Issued — PNR ${booking.PNR} (${booking.FlightTitle || ''})`,
+              Description: `${paxCount} PAX ${tripLabel} ISSUED (TICKET AMT X${paxCount})`,
               ReferencePNR: booking.PNR,
               PreviousBalance: prevBal,
               Amount: fare,
@@ -1145,8 +1153,9 @@ export function PortalProvider({ children }) {
           CompanyName: newAgent.CompanyName,
           DateTime: formatNow(),
           IsoTimestamp: new Date().toISOString(),
+          Voucher: 'RV',
           Type: 'CREDIT',
-          Description: 'Initial Credit Limit Assigned by Admin',
+          Description: `${newAgent.CreditLimitBalance} CREDIT TO ACCOUNT`,
           ReferencePNR: '',
           PreviousBalance: 0,
           Amount: newAgent.CreditLimitBalance,
@@ -1199,9 +1208,12 @@ export function PortalProvider({ children }) {
             CompanyName: payload.CompanyName || existing.CompanyName,
             DateTime: formatNow(),
             IsoTimestamp: new Date().toISOString(),
+            Voucher: diff > 0 ? 'RV' : 'ADJ',
             Type: diff > 0 ? 'CREDIT' : 'DEBIT',
             Description:
-              diff > 0 ? 'Credit Adjusted (+ by Admin)' : 'Credit Adjusted (- by Admin)',
+              diff > 0
+                ? `${Math.abs(diff)} CREDIT TO ACCOUNT (ADMIN ADJUST)`
+                : `${Math.abs(diff)} DEBIT ADJUSTMENT BY ADMIN`,
             ReferencePNR: '',
             PreviousBalance: prevBal,
             Amount: Math.abs(diff),
@@ -1234,8 +1246,9 @@ export function PortalProvider({ children }) {
           CompanyName: ag.CompanyName,
           DateTime: formatNow(),
           IsoTimestamp: new Date().toISOString(),
+          Voucher: 'RV',
           Type: 'CREDIT',
-          Description: 'Credit Top-Up Added by Admin',
+          Description: `${amount} CREDIT TO ACCOUNT`,
           ReferencePNR: '',
           PreviousBalance: prevBal,
           Amount: amount,
