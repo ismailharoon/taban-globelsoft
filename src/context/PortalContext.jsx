@@ -422,6 +422,45 @@ export function PortalProvider({ children }) {
     };
   }, [fetchRemoteDb]);
 
+  const saveRemoteDb = useCallback(async (nextState) => {
+    isSavingRef.current = true;
+    try {
+      const res = await fetch('/api/db', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(nextState)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.ok && data.state) {
+          setDbState(data.state);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data.state));
+          } catch {}
+        }
+      }
+    } catch (err) {
+      console.warn('Cloud DB sync warning:', err);
+    } finally {
+      isSavingRef.current = false;
+    }
+  }, []);
+
+  const updateLocalDb = useCallback(
+    (updater) => {
+      setDbState((prev) => {
+        const next =
+          typeof updater === 'function' ? updater(JSON.parse(JSON.stringify(prev))) : updater;
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        } catch {}
+        saveRemoteDb(next);
+        return next;
+      });
+    },
+    [saveRemoteDb]
+  );
+
   // Auto-cancel expired unissued Sub-Agent bookings (Main Admin / DIRECT bookings never expire)
   useEffect(() => {
     const checkExpiredBookings = () => {
@@ -476,45 +515,6 @@ export function PortalProvider({ children }) {
     const expInterval = setInterval(checkExpiredBookings, 15000);
     return () => clearInterval(expInterval);
   }, [dbState.bookings, updateLocalDb]);
-
-  const saveRemoteDb = useCallback(async (nextState) => {
-    isSavingRef.current = true;
-    try {
-      const res = await fetch('/api/db', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(nextState)
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.ok && data.state) {
-          setDbState(data.state);
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data.state));
-          } catch {}
-        }
-      }
-    } catch (err) {
-      console.warn('Cloud DB sync warning:', err);
-    } finally {
-      isSavingRef.current = false;
-    }
-  }, []);
-
-  const updateLocalDb = useCallback(
-    (updater) => {
-      setDbState((prev) => {
-        const next =
-          typeof updater === 'function' ? updater(JSON.parse(JSON.stringify(prev))) : updater;
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        } catch {}
-        saveRemoteDb(next);
-        return next;
-      });
-    },
-    [saveRemoteDb]
-  );
 
   const enriched = React.useMemo(() => computeEnriched(dbState), [dbState]);
 
