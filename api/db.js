@@ -48,6 +48,7 @@ async function loadOrInitState(collection) {
       flights: [],
       subAgents: [],
       bookings: [],
+      creditTransactions: [],
       updatedAt: new Date().toISOString()
     };
     await collection.insertOne(fresh);
@@ -82,6 +83,7 @@ export default async function handler(req, res) {
           flights: state.flights || [],
           subAgents: state.subAgents || [],
           bookings: state.bookings || [],
+          creditTransactions: state.creditTransactions || [],
           updatedAt: state.updatedAt
         }
       });
@@ -99,6 +101,9 @@ export default async function handler(req, res) {
         flights: Array.isArray(body.flights) ? body.flights : current.flights || [],
         subAgents: Array.isArray(body.subAgents) ? body.subAgents : current.subAgents || [],
         bookings: Array.isArray(body.bookings) ? body.bookings : current.bookings || [],
+        creditTransactions: Array.isArray(body.creditTransactions)
+          ? body.creditTransactions
+          : current.creditTransactions || [],
         updatedAt: new Date().toISOString()
       };
 
