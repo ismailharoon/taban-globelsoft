@@ -3,13 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search,
   ArrowLeftRight,
-  Calendar,
   Plus,
   Minus,
   Tag,
   Plane,
   Sparkles,
-  Upload,
   CheckCircle2,
   Clock,
   Luggage,
@@ -23,6 +21,8 @@ import {
 import { usePortal, calculateSegmentPassengerTotal } from '../context/PortalContext';
 import { formatCurrencyPKR, formatDateTime, formatShortDate } from '../utils/exporters';
 import TicketPrintModal from '../components/TicketPrintModal';
+import FlightDateCalendar from '../components/FlightDateCalendar';
+import ConfirmActionModal from '../components/ConfirmActionModal';
 
 const DEFAULT_MULTI_LEGS = [
   { id: 'leg-1', fromIata: 'KHI', toIata: 'IKA', departDate: '' },
@@ -73,6 +73,20 @@ export default function FlightPOS() {
   const [remarks, setRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [printBooking, setPrintBooking] = useState(null);
+  const [confirmState, setConfirmState] = useState(null);
+
+  const askConfirm = ({ title, message, confirmLabel, variant = 'navy', action }) => {
+    setConfirmState({
+      title,
+      message,
+      confirmLabel,
+      variant,
+      onConfirm: async () => {
+        setConfirmState(null);
+        await action();
+      }
+    });
+  };
 
   useEffect(() => {
     if (isSubAgent && user?.SubCompanyID) {
@@ -150,6 +164,39 @@ export default function FlightPOS() {
   const removeMultiLeg = (index) => {
     setMultiCityLegs((prev) => (prev.length <= 2 ? prev : prev.filter((_, i) => i !== index)));
   };
+
+  // Helper to compute available flight dates (YYYY-MM-DD) for calendar highlighting
+  const getAvailableDatesForRoute = (depIata, arrIata) => {
+    const dates = new Set();
+    (segments || []).forEach((seg) => {
+      const avail = Number(seg.SeatsLeft ?? seg.TotalSeats) || 0;
+      if (avail <= 0) return;
+      if (
+        cabinClass !== 'All' &&
+        (seg.FlightClass || 'Economy').toLowerCase() !== cabinClass.toLowerCase()
+      ) {
+        return;
+      }
+      if (depIata !== 'ALL' && seg.DepartureIata !== depIata) return;
+      if (arrIata !== 'ALL' && seg.ArrivalIata !== arrIata) return;
+      if (seg.DepartureDate) {
+        dates.add(String(seg.DepartureDate).slice(0, 10));
+      }
+    });
+    return Array.from(dates);
+  };
+
+  const outboundAvailableDates = useMemo(
+    () => getAvailableDatesForRoute(fromIata, toIata),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [segments, fromIata, toIata, cabinClass]
+  );
+
+  const returnAvailableDates = useMemo(
+    () => getAvailableDatesForRoute(toIata, fromIata),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [segments, fromIata, toIata, cabinClass]
+  );
 
   // Helper to check which Multi City leg(s) a segment matches
   const getMatchingMultiLegIndices = (seg) => {
@@ -229,9 +276,7 @@ export default function FlightPOS() {
         DOB: '1990-01-01',
         PassportNumber: autoFillNTBA ? `NTBA00${i + 1}` : '',
         PassportIssueDate: '2024-01-01',
-        PassportExpiryDate: '2030-01-01',
-        PassportImageName: '',
-        PassportFileData: ''
+        PassportExpiryDate: '2030-01-01'
       });
     }
     for (let i = 0; i < Number(childrenCount); i++) {
@@ -246,9 +291,7 @@ export default function FlightPOS() {
         DOB: '2018-01-01',
         PassportNumber: autoFillNTBA ? `NTBAC0${i + 1}` : '',
         PassportIssueDate: '2024-01-01',
-        PassportExpiryDate: '2030-01-01',
-        PassportImageName: '',
-        PassportFileData: ''
+        PassportExpiryDate: '2030-01-01'
       });
     }
     for (let i = 0; i < Number(infantsCount); i++) {
@@ -263,9 +306,7 @@ export default function FlightPOS() {
         DOB: '2025-01-01',
         PassportNumber: autoFillNTBA ? `NTBAI0${i + 1}` : '',
         PassportIssueDate: '2025-01-01',
-        PassportExpiryDate: '2030-01-01',
-        PassportImageName: '',
-        PassportFileData: ''
+        PassportExpiryDate: '2030-01-01'
       });
     }
     setPassengers(list);
@@ -345,23 +386,6 @@ export default function FlightPOS() {
     });
   };
 
-  const handlePassportUpload = (idx, file) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPassengers((prev) => {
-        const next = [...prev];
-        next[idx] = {
-          ...next[idx],
-          PassportImageName: file.name,
-          PassportFileData: String(reader.result || '')
-        };
-        return next;
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-
   const getSegmentUnitFares = (seg) => {
     const isRT = tripType === 'Round Trip';
     return {
@@ -439,29 +463,39 @@ export default function FlightPOS() {
       }
     }
 
-    setSubmitting(true);
-    try {
-      await createBooking({
-        SegmentIDs: selectedSegments.map((s) => s.AirGroupSegmentID),
-        TripType: tripType,
-        SubCompanyID: isSubAgent ? user.SubCompanyID : selectedAgentId || 'DIRECT',
-        EmailAddress: email || selectedAgent?.Email || 'bookings@bookly.com',
-        MobileNumber: mobile || selectedAgent?.MobileNumber || '',
-        Remarks: promoCode ? `${remarks ? remarks + ' | ' : ''}Promo: ${promoCode}` : remarks,
-        Passengers: passengers,
-        BookingChannelName: 'Bookly POS Search'
-      });
-      setSelectedSegmentIds([]);
-      if (isSubAgent) {
-        navigate('/Dashboard');
-      } else {
-        navigate('/FlightBookings');
+    const executeBooking = async () => {
+      setSubmitting(true);
+      try {
+        await createBooking({
+          SegmentIDs: selectedSegments.map((s) => s.AirGroupSegmentID),
+          TripType: tripType,
+          SubCompanyID: isSubAgent ? user.SubCompanyID : selectedAgentId || 'DIRECT',
+          EmailAddress: email || selectedAgent?.Email || 'bookings@bookly.com',
+          MobileNumber: mobile || selectedAgent?.MobileNumber || '',
+          Remarks: promoCode ? `${remarks ? remarks + ' | ' : ''}Promo: ${promoCode}` : remarks,
+          Passengers: passengers,
+          BookingChannelName: 'Bookly POS Search'
+        });
+        setSelectedSegmentIds([]);
+        if (isSubAgent) {
+          navigate('/Dashboard');
+        } else {
+          navigate('/FlightBookings');
+        }
+      } catch (err) {
+        addToast(err.message, 'error');
+      } finally {
+        setSubmitting(false);
       }
-    } catch (err) {
-      addToast(err.message, 'error');
-    } finally {
-      setSubmitting(false);
-    }
+    };
+
+    askConfirm({
+      title: 'Confirm PNR Booking',
+      message: `Do you really want to create this booking for ${passengers.length} passenger(s) totaling ${formatCurrencyPKR(fareBreakdown.grandTotal)}?`,
+      confirmLabel: 'Yes, Create Booking',
+      variant: 'navy',
+      action: executeBooking
+    });
   };
 
   return (
@@ -611,28 +645,15 @@ export default function FlightPOS() {
                       </div>
 
                       {/* DEPART DATE */}
-                      <div className="md:col-span-3 p-2.5 rounded-lg bg-white border border-slate-200">
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold uppercase">
-                          <span>Depart Date</span>
-                          {leg.departDate && (
-                            <button
-                              type="button"
-                              onClick={() => updateMultiLeg(idx, 'departDate', '')}
-                              className="text-[10px] text-red-500 hover:underline"
-                            >
-                              Clear
-                            </button>
-                          )}
-                        </div>
-                        <input
-                          type="date"
+                      <div className="md:col-span-3">
+                        <FlightDateCalendar
+                          compact
+                          label="Depart Date"
                           value={leg.departDate}
-                          onChange={(e) => updateMultiLeg(idx, 'departDate', e.target.value)}
-                          className="w-full mt-1 text-xs font-medium text-slate-800 bg-transparent focus:outline-none cursor-pointer"
+                          onChange={(val) => updateMultiLeg(idx, 'departDate', val)}
+                          availableDates={getAvailableDatesForRoute(leg.fromIata, leg.toIata)}
+                          placeholder="Any Available Date"
                         />
-                        <div className="text-[10px] text-slate-400 mt-0.5">
-                          {leg.departDate ? formatShortDate(leg.departDate) : 'Any Available Date'}
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -729,64 +750,22 @@ export default function FlightPOS() {
 
               {/* ROW 2: DEPART DATE & RETURN DATE */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                <div className="px-3.5 py-2.5 rounded-xl border border-slate-200 hover:border-[#1B3664] flex items-center justify-between bg-white transition">
-                  <div className="flex items-center gap-2.5 flex-1">
-                    <Calendar className="w-4 h-4 text-[#1B3664] shrink-0" />
-                    <div className="flex-1">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                        Depart {departDate ? '' : '(Any Date)'}
-                      </div>
-                      <input
-                        type="date"
-                        value={departDate}
-                        onChange={(e) => setDepartDate(e.target.value)}
-                        className="w-full text-xs font-medium text-slate-800 focus:outline-none bg-transparent cursor-pointer"
-                      />
-                    </div>
-                  </div>
-                  {departDate && (
-                    <button
-                      type="button"
-                      onClick={() => setDepartDate('')}
-                      className="text-[11px] text-slate-400 hover:text-red-600 px-1.5"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
+                <FlightDateCalendar
+                  label={`Depart${departDate ? '' : ' (Any Date)'}`}
+                  value={departDate}
+                  onChange={setDepartDate}
+                  availableDates={outboundAvailableDates}
+                  placeholder="Select Depart Date"
+                />
 
-                <div
-                  className={`px-3.5 py-2.5 rounded-xl border flex items-center justify-between transition ${
-                    tripType === 'Round Trip'
-                      ? 'border-slate-200 hover:border-[#1B3664] bg-white'
-                      : 'border-slate-100 bg-slate-50 opacity-60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 flex-1">
-                    <Calendar className="w-4 h-4 text-[#1B3664] shrink-0" />
-                    <div className="flex-1">
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                        Return {tripType !== 'Round Trip' && '(Round Trip Only)'}
-                      </div>
-                      <input
-                        type="date"
-                        disabled={tripType !== 'Round Trip'}
-                        value={returnDate}
-                        onChange={(e) => setReturnDate(e.target.value)}
-                        className="w-full text-xs font-medium text-slate-800 focus:outline-none bg-transparent disabled:cursor-not-allowed"
-                      />
-                    </div>
-                  </div>
-                  {returnDate && tripType === 'Round Trip' && (
-                    <button
-                      type="button"
-                      onClick={() => setReturnDate('')}
-                      className="text-[11px] text-slate-400 hover:text-red-600 px-1.5"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
+                <FlightDateCalendar
+                  label={`Return${tripType !== 'Round Trip' ? ' (Round Trip Only)' : ''}`}
+                  value={returnDate}
+                  onChange={setReturnDate}
+                  availableDates={returnAvailableDates}
+                  disabled={tripType !== 'Round Trip'}
+                  placeholder="Select Return Date"
+                />
               </div>
             </>
           )}
@@ -1260,7 +1239,6 @@ export default function FlightPOS() {
                     <th className="py-2.5 px-2.5">Passport No *</th>
                     <th className="py-2.5 px-2.5">Issue Date</th>
                     <th className="py-2.5 px-2.5">Expiry Date</th>
-                    <th className="py-2.5 px-2.5">Passport Scan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
@@ -1370,20 +1348,6 @@ export default function FlightPOS() {
                           }
                           className="px-2 py-1 rounded border border-slate-300 font-mono"
                         />
-                      </td>
-                      <td className="py-2 px-2.5">
-                        <label className="inline-flex items-center gap-1 px-2 py-1 rounded bg-slate-100 hover:bg-[#1B3664] text-[#1B3664] hover:text-white font-medium cursor-pointer transition">
-                          <Upload className="w-3 h-3" />
-                          <span className="truncate max-w-[70px]">
-                            {p.PassportImageName || 'Upload'}
-                          </span>
-                          <input
-                            type="file"
-                            accept="image/*,.pdf"
-                            className="hidden"
-                            onChange={(e) => handlePassportUpload(idx, e.target.files?.[0])}
-                          />
-                        </label>
                       </td>
                     </tr>
                   ))}
@@ -1573,7 +1537,15 @@ export default function FlightPOS() {
                             {canIssue && (
                               <button
                                 type="button"
-                                onClick={() => issueTicket(b.AirGroupBookingID)}
+                                onClick={() =>
+                                  askConfirm({
+                                    title: 'Issue Ticket?',
+                                    message: `Do you really want to issue ticket for PNR ${b.PNR}? Once issued, it cannot be edited or cancelled.`,
+                                    confirmLabel: 'Yes, Issue Ticket',
+                                    variant: 'success',
+                                    onConfirm: () => issueTicket(b.AirGroupBookingID)
+                                  })
+                                }
                                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-medium transition cursor-pointer"
                               >
                                 <CheckCircle2 className="w-3 h-3" />
@@ -1583,15 +1555,15 @@ export default function FlightPOS() {
                             {canCancel && (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (
-                                    window.confirm(
-                                      `Cancel booking PNR ${b.PNR}? This will release the seats and refund your credit balance.`
-                                    )
-                                  ) {
-                                    cancelBooking(b.AirGroupBookingID);
-                                  }
-                                }}
+                                onClick={() =>
+                                  askConfirm({
+                                    title: 'Cancel Booking?',
+                                    message: `Do you really want to cancel booking PNR ${b.PNR}? This will release the seats and refund your credit balance.`,
+                                    confirmLabel: 'Yes, Cancel Booking',
+                                    variant: 'danger',
+                                    onConfirm: () => cancelBooking(b.AirGroupBookingID)
+                                  })
+                                }
                                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-medium transition cursor-pointer"
                               >
                                 <X className="w-3 h-3" />
@@ -1621,6 +1593,19 @@ export default function FlightPOS() {
       {printBooking && (
         <TicketPrintModal booking={printBooking} onClose={() => setPrintBooking(null)} />
       )}
+
+      <ConfirmActionModal
+        isOpen={Boolean(confirmState)}
+        title={confirmState?.title}
+        message={confirmState?.message}
+        confirmLabel={confirmState?.confirmLabel}
+        variant={confirmState?.variant}
+        onCancel={() => setConfirmState(null)}
+        onConfirm={() => {
+          confirmState?.onConfirm?.();
+          setConfirmState(null);
+        }}
+      />
     </div>
   );
 }

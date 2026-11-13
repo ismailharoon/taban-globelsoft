@@ -11,18 +11,16 @@ import {
   ChevronRight,
   Plane,
   User,
-  Upload,
-  Download,
   Search,
   Filter,
   AlertTriangle,
   X,
-  Clock,
-  FileText
+  Clock
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
 import { formatCurrencyPKR, formatDateTime } from '../utils/exporters';
 import TicketPrintModal from '../components/TicketPrintModal';
+import ConfirmActionModal from '../components/ConfirmActionModal';
 
 const STATUS_TABS = [
   { key: 'Pending', label: 'Pending' },
@@ -62,6 +60,20 @@ export default function FlightBookings() {
   const [voidTarget, setVoidTarget] = useState(null);
   const [voidRemarks, setVoidRemarks] = useState('');
   const [editingPax, setEditingPax] = useState(null); // { bookingId, passenger }
+  const [confirmState, setConfirmState] = useState(null);
+
+  const askConfirm = ({ title, message, confirmLabel, variant = 'navy', action }) => {
+    setConfirmState({
+      title,
+      message,
+      confirmLabel,
+      variant,
+      onConfirm: async () => {
+        setConfirmState(null);
+        await action();
+      }
+    });
+  };
 
   const toggleExpand = (bookingId) => {
     setExpandedRows((prev) => ({ ...prev, [bookingId]: !prev[bookingId] }));
@@ -206,24 +218,6 @@ export default function FlightBookings() {
     }
   };
 
-  const handlePassportFileUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setEditingPax((prev) => ({
-        ...prev,
-        passenger: {
-          ...prev.passenger,
-          PassportImageName: file.name,
-          PassportFileData: reader.result
-        }
-      }));
-      addToast(`Passport image "${file.name}" attached.`, 'info');
-    };
-    reader.readAsDataURL(file);
-  };
-
   return (
     <div className="space-y-5">
       {/* Top Header */}
@@ -324,13 +318,20 @@ export default function FlightBookings() {
                 filteredBookings.map((booking) => {
                   const isExpanded = Boolean(expandedRows[booking.AirGroupBookingID]);
                   const isIssued = booking.ApprovalStatus === 'Ticket Issued';
-                  const canApprove = booking.ApprovalStatus === 'Pending';
-                  const canReject = booking.ApprovalStatus === 'Pending';
+                  const canApprove = !isSubAgent && booking.ApprovalStatus === 'Pending';
+                  const canReject = !isSubAgent && booking.ApprovalStatus === 'Pending';
                   const canIssue =
                     booking.ApprovalStatus === 'Approved' || booking.ApprovalStatus === 'Pending';
+                  const canCancel =
+                    isSubAgent &&
+                    !isIssued &&
+                    booking.ApprovalStatus !== 'Cancelled' &&
+                    booking.ApprovalStatus !== 'Rejected' &&
+                    booking.ApprovalStatus !== 'Ticket Void';
                   const canVoid =
-                    booking.ApprovalStatus === 'Ticket Issued' ||
-                    booking.ApprovalStatus === 'Approved';
+                    !isSubAgent &&
+                    (booking.ApprovalStatus === 'Ticket Issued' ||
+                      booking.ApprovalStatus === 'Approved');
 
                   return (
                     <React.Fragment key={booking.AirGroupBookingID}>
@@ -441,7 +442,15 @@ export default function FlightBookings() {
                           <div className="flex flex-wrap items-center justify-end gap-1.5">
                             {canApprove && (
                               <button
-                                onClick={() => approveBooking(booking.AirGroupBookingID)}
+                                onClick={() =>
+                                  askConfirm({
+                                    title: 'Confirm Approve Booking',
+                                    message: `Do you really want to approve booking PNR ${booking.PNR} (${booking.AirGroupBookingID})?`,
+                                    confirmLabel: 'Yes, Approve',
+                                    variant: 'emerald',
+                                    action: () => approveBooking(booking.AirGroupBookingID)
+                                  })
+                                }
                                 className="px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
                                 title="Approve Booking"
                               >
@@ -452,7 +461,15 @@ export default function FlightBookings() {
 
                             {canReject && (
                               <button
-                                onClick={() => rejectBooking(booking.AirGroupBookingID)}
+                                onClick={() =>
+                                  askConfirm({
+                                    title: 'Confirm Reject Booking',
+                                    message: `Do you really want to reject booking PNR ${booking.PNR} (${booking.AirGroupBookingID})?`,
+                                    confirmLabel: 'Yes, Reject',
+                                    variant: 'danger',
+                                    action: () => rejectBooking(booking.AirGroupBookingID)
+                                  })
+                                }
                                 className="px-2.5 py-1.5 rounded-lg bg-red-700 hover:bg-red-800 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
                                 title="Reject Booking"
                               >
@@ -463,12 +480,39 @@ export default function FlightBookings() {
 
                             {canIssue && (
                               <button
-                                onClick={() => issueTicket(booking.AirGroupBookingID)}
+                                onClick={() =>
+                                  askConfirm({
+                                    title: 'Confirm Issue Ticket',
+                                    message: `Do you really want to issue e-tickets for PNR ${booking.PNR} (${booking.AirGroupBookingID})?`,
+                                    confirmLabel: 'Yes, Issue Ticket',
+                                    variant: 'navy',
+                                    action: () => issueTicket(booking.AirGroupBookingID)
+                                  })
+                                }
                                 className="px-2.5 py-1.5 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
                                 title="Issue E-Tickets"
                               >
                                 <Ticket className="w-3.5 h-3.5" />
                                 Issue Ticket
+                              </button>
+                            )}
+
+                            {canCancel && (
+                              <button
+                                onClick={() =>
+                                  askConfirm({
+                                    title: 'Confirm Cancel Booking',
+                                    message: `Do you really want to cancel booking PNR ${booking.PNR}? Seats will be released and your credit balance refunded.`,
+                                    confirmLabel: 'Yes, Cancel Booking',
+                                    variant: 'danger',
+                                    action: () => cancelBooking(booking.AirGroupBookingID)
+                                  })
+                                }
+                                className="px-2.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                                title="Cancel Booking"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                Cancel Booking
                               </button>
                             )}
 
@@ -495,25 +539,33 @@ export default function FlightBookings() {
                               {isIssued ? 'Print Ticket' : 'Print Details'}
                             </button>
 
-                            <button
-                              onClick={() => setEditingBooking({ ...booking })}
-                              className="p-1.5 rounded-lg border border-slate-200 hover:border-[#1B3664] text-slate-600 hover:text-[#1B3664] transition cursor-pointer"
-                              title="Edit Booking"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
+                            {!isSubAgent && (
+                              <button
+                                onClick={() => setEditingBooking({ ...booking })}
+                                className="p-1.5 rounded-lg border border-slate-200 hover:border-[#1B3664] text-slate-600 hover:text-[#1B3664] transition cursor-pointer"
+                                title="Edit Booking"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
 
-                            <button
-                              onClick={() => {
-                                if (window.confirm(`Delete booking ${booking.AirGroupBookingID}?`)) {
-                                  deleteBooking(booking.AirGroupBookingID);
+                            {!isSubAgent && (
+                              <button
+                                onClick={() =>
+                                  askConfirm({
+                                    title: 'Confirm Delete Booking',
+                                    message: `Do you really want to permanently delete booking ${booking.AirGroupBookingID} (${booking.PNR})?`,
+                                    confirmLabel: 'Yes, Delete',
+                                    variant: 'danger',
+                                    action: () => deleteBooking(booking.AirGroupBookingID)
+                                  })
                                 }
-                              }}
-                              className="p-1.5 rounded-lg border border-slate-200 hover:border-red-600 text-slate-500 hover:text-red-600 transition cursor-pointer"
-                              title="Delete Booking"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                                className="p-1.5 rounded-lg border border-slate-200 hover:border-red-600 text-slate-500 hover:text-red-600 transition cursor-pointer"
+                                title="Delete Booking"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -581,9 +633,11 @@ export default function FlightBookings() {
                                     <User className="w-3.5 h-3.5" />
                                     Passenger Information ({(booking.Passengers || []).length})
                                   </h5>
-                                  <span className="text-[11px] text-slate-500">
-                                    Click Edit Pax to update details or upload/download passport scan
-                                  </span>
+                                  {!isSubAgent && (
+                                    <span className="text-[11px] text-slate-500">
+                                      Click Edit Pax to update passenger details
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="overflow-x-auto">
                                   <table className="w-full text-left border-collapse text-xs">
@@ -599,8 +653,7 @@ export default function FlightBookings() {
                                         <th className="py-2 px-3">Passport #</th>
                                         <th className="py-2 px-3">Passport Issue / Expiry</th>
                                         <th className="py-2 px-3">Ticket #</th>
-                                        <th className="py-2 px-3">Passport Scan</th>
-                                        <th className="py-2 px-3 text-right">Actions</th>
+                                        {!isSubAgent && <th className="py-2 px-3 text-right">Actions</th>}
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
@@ -631,51 +684,42 @@ export default function FlightBookings() {
                                           <td className="py-2 px-3 font-mono font-semibold text-[#1B3664]">
                                             {pax.TicketNumber || 'Not Issued'}
                                           </td>
-                                          <td className="py-2 px-3">
-                                            {pax.PassportImageName ? (
-                                              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                                                <FileText className="w-3 h-3" />
-                                                {pax.PassportImageName}
-                                              </span>
-                                            ) : (
-                                              <span className="text-slate-400 text-[11px]">
-                                                Not uploaded
-                                              </span>
-                                            )}
-                                          </td>
-                                          <td className="py-2 px-3 text-right">
-                                            <div className="flex items-center justify-end gap-1.5">
-                                              <button
-                                                onClick={() =>
-                                                  setEditingPax({
-                                                    bookingId: booking.AirGroupBookingID,
-                                                    passenger: { ...pax }
-                                                  })
-                                                }
-                                                className="px-2.5 py-1 rounded-lg bg-[#1B3664] text-white text-[11px] font-medium hover:bg-[#0F172A] transition cursor-pointer"
-                                              >
-                                                Edit Pax
-                                              </button>
-                                              <button
-                                                onClick={() => {
-                                                  if (
-                                                    window.confirm(
-                                                      `Remove passenger ${pax.FirstName} ${pax.LastName}?`
-                                                    )
-                                                  ) {
-                                                    deletePassenger(
-                                                      booking.AirGroupBookingID,
-                                                      pax.PassengerID
-                                                    );
+                                          {!isSubAgent && (
+                                            <td className="py-2 px-3 text-right">
+                                              <div className="flex items-center justify-end gap-1.5">
+                                                <button
+                                                  onClick={() =>
+                                                    setEditingPax({
+                                                      bookingId: booking.AirGroupBookingID,
+                                                      passenger: { ...pax }
+                                                    })
                                                   }
-                                                }}
-                                                className="p-1 rounded-lg text-slate-500 hover:text-red-600 cursor-pointer"
-                                                title="Delete Passenger"
-                                              >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                              </button>
-                                            </div>
-                                          </td>
+                                                  className="px-2.5 py-1 rounded-lg bg-[#1B3664] text-white text-[11px] font-medium hover:bg-[#0F172A] transition cursor-pointer"
+                                                >
+                                                  Edit Pax
+                                                </button>
+                                                <button
+                                                  onClick={() =>
+                                                    askConfirm({
+                                                      title: 'Confirm Remove Passenger',
+                                                      message: `Do you really want to remove passenger ${pax.FirstName} ${pax.LastName}?`,
+                                                      confirmLabel: 'Yes, Remove',
+                                                      variant: 'danger',
+                                                      action: () =>
+                                                        deletePassenger(
+                                                          booking.AirGroupBookingID,
+                                                          pax.PassengerID
+                                                        )
+                                                    })
+                                                  }
+                                                  className="p-1 rounded-lg text-slate-500 hover:text-red-600 cursor-pointer"
+                                                  title="Delete Passenger"
+                                                >
+                                                  <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                              </div>
+                                            </td>
+                                          )}
                                         </tr>
                                       ))}
                                     </tbody>
@@ -1058,50 +1102,6 @@ export default function FlightBookings() {
                 </div>
               </div>
 
-              {/* Passport Scan Upload & Preview */}
-              <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="font-semibold text-slate-800">Upload Passport Scan</div>
-                    <div className="text-[11px] text-slate-500">
-                      Accepted formats: .jpg, .jpeg, .png • Current:{' '}
-                      <b>{editingPax.passenger.PassportImageName || 'Passport file not uploaded'}</b>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1B3664] text-white font-medium hover:bg-[#0F172A] transition">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Choose File</span>
-                      <input
-                        type="file"
-                        accept=".jpg,.jpeg,.png"
-                        onChange={handlePassportFileUpload}
-                        className="hidden"
-                      />
-                    </label>
-                    {editingPax.passenger.PassportFileData && (
-                      <a
-                        href={editingPax.passenger.PassportFileData}
-                        download={editingPax.passenger.PassportImageName || 'passport.jpg'}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-white font-medium"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download Passport</span>
-                      </a>
-                    )}
-                  </div>
-                </div>
-                {editingPax.passenger.PassportFileData && (
-                  <div className="mt-3 flex justify-center">
-                    <img
-                      src={editingPax.passenger.PassportFileData}
-                      alt="Passport Preview"
-                      className="max-h-40 rounded-lg border border-slate-300"
-                    />
-                  </div>
-                )}
-              </div>
-
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
@@ -1121,6 +1121,17 @@ export default function FlightBookings() {
           </div>
         </div>
       )}
+
+      {/* 5. GLOBAL ACTION CONFIRMATION POPUP */}
+      <ConfirmActionModal
+        isOpen={Boolean(confirmState)}
+        title={confirmState?.title}
+        message={confirmState?.message}
+        confirmLabel={confirmState?.confirmLabel}
+        variant={confirmState?.variant}
+        onConfirm={confirmState?.onConfirm}
+        onCancel={() => setConfirmState(null)}
+      />
     </div>
   );
 }

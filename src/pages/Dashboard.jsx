@@ -20,12 +20,27 @@ import {
 import { usePortal } from '../context/PortalContext';
 import { formatCurrencyPKR, formatShortDate } from '../utils/exporters';
 import TicketPrintModal from '../components/TicketPrintModal';
+import ConfirmActionModal from '../components/ConfirmActionModal';
 
 export default function Dashboard() {
   const { user, isSubAgent, stats, bookings, segments, subAgents, cancelBooking, issueTicket } = usePortal();
   const navigate = useNavigate();
   const [printBooking, setPrintBooking] = useState(null);
   const [expandedRows, setExpandedRows] = useState({});
+  const [confirmState, setConfirmState] = useState(null);
+
+  const askConfirm = ({ title, message, confirmLabel, variant = 'navy', action }) => {
+    setConfirmState({
+      title,
+      message,
+      confirmLabel,
+      variant,
+      onConfirm: async () => {
+        setConfirmState(null);
+        await action();
+      }
+    });
+  };
 
   const statusCounts = {
     Pending: bookings.filter((b) => b.ApprovalStatus === 'Pending').length,
@@ -262,7 +277,15 @@ export default function Dashboard() {
                               <div className="inline-flex items-center justify-end gap-1.5">
                                 {canIssue && (
                                   <button
-                                    onClick={() => issueTicket(b.AirGroupBookingID)}
+                                    onClick={() =>
+                                      askConfirm({
+                                        title: 'Confirm Issue Ticket',
+                                        message: `Do you really want to issue e-tickets for PNR ${b.PNR}?`,
+                                        confirmLabel: 'Yes, Issue Ticket',
+                                        variant: 'emerald',
+                                        action: () => issueTicket(b.AirGroupBookingID)
+                                      })
+                                    }
                                     className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-[11px] font-medium transition cursor-pointer"
                                   >
                                     <Ticket className="w-3 h-3" />
@@ -271,15 +294,15 @@ export default function Dashboard() {
                                 )}
                                 {canCancel && (
                                   <button
-                                    onClick={() => {
-                                      if (
-                                        window.confirm(
-                                          `Cancel booking PNR ${b.PNR}? This will release the seats and refund your credit balance.`
-                                        )
-                                      ) {
-                                        cancelBooking(b.AirGroupBookingID);
-                                      }
-                                    }}
+                                    onClick={() =>
+                                      askConfirm({
+                                        title: 'Confirm Cancel Booking',
+                                        message: `Do you really want to cancel booking PNR ${b.PNR}? Seats will be released and your credit balance refunded.`,
+                                        confirmLabel: 'Yes, Cancel Booking',
+                                        variant: 'danger',
+                                        action: () => cancelBooking(b.AirGroupBookingID)
+                                      })
+                                    }
                                     className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-medium transition cursor-pointer"
                                   >
                                     <XCircle className="w-3 h-3" />
@@ -422,6 +445,16 @@ export default function Dashboard() {
         {printBooking && (
           <TicketPrintModal booking={printBooking} onClose={() => setPrintBooking(null)} />
         )}
+
+        <ConfirmActionModal
+          isOpen={Boolean(confirmState)}
+          title={confirmState?.title}
+          message={confirmState?.message}
+          confirmLabel={confirmState?.confirmLabel}
+          variant={confirmState?.variant}
+          onConfirm={confirmState?.onConfirm}
+          onCancel={() => setConfirmState(null)}
+        />
       </div>
     );
   }
