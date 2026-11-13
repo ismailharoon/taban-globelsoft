@@ -410,22 +410,31 @@ export default function FlightPOS() {
     const inf = Number(infantsCount) || 0;
     const isRT = tripType === 'Round Trip';
 
-    let adtUnit = 0;
-    let cnnUnit = 0;
-    let infUnit = 0;
+    let adtTotal = 0;
+    let cnnTotal = 0;
+    let infTotal = 0;
     let grandTotal = 0;
 
     selectedSegments.forEach((seg) => {
-      const fares = getSegmentUnitFares(seg);
-      adtUnit += fares.adt;
-      cnnUnit += fares.cnn;
-      infUnit += fares.inf;
-      grandTotal += calculateSegmentPassengerTotal(seg, adt, cnn, inf, isRT);
+      const res = calculateSegmentPassengerTotal(seg, adt, cnn, inf, isRT);
+      adtTotal += Number(res.adtTotal) || 0;
+      cnnTotal += Number(res.cnnTotal) || 0;
+      infTotal += Number(res.infTotal) || 0;
+      grandTotal += Number(res.total) || 0;
     });
 
-    const adtTotal = adt * adtUnit;
-    const cnnTotal = cnn * cnnUnit;
-    const infTotal = inf * infUnit;
+    const adtUnit =
+      adt > 0
+        ? Math.round(adtTotal / adt)
+        : selectedSegments.reduce((s, seg) => s + getSegmentUnitFares(seg).adt, 0);
+    const cnnUnit =
+      cnn > 0
+        ? Math.round(cnnTotal / cnn)
+        : selectedSegments.reduce((s, seg) => s + getSegmentUnitFares(seg).cnn, 0);
+    const infUnit =
+      inf > 0
+        ? Math.round(infTotal / inf)
+        : selectedSegments.reduce((s, seg) => s + getSegmentUnitFares(seg).inf, 0);
 
     return {
       adt,
