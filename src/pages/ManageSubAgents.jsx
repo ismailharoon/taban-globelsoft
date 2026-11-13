@@ -1065,19 +1065,59 @@ export default function ManageSubAgents() {
                 </div>
 
                 {/* Transactions Table matching Statement format */}
-                <div className="border border-slate-300 rounded-xl overflow-hidden">
+                <div className="border border-slate-400 rounded-lg overflow-hidden">
+                  {/* Grey Statement Header Block */}
+                  <div className="grid grid-cols-1 sm:grid-cols-12 bg-[#D9D9D9] border-b border-slate-400 text-slate-900">
+                    <div className="sm:col-span-7 p-3 border-b sm:border-b-0 sm:border-r border-slate-400 space-y-0.5">
+                      <div className="font-bold text-base tracking-tight">BOOKLY-</div>
+                      <div className="text-[11px]">
+                        <span className="font-semibold">ADDRESS:</span>{' '}
+                        {[statementAgent.Address, statementAgent.City, statementAgent.Country]
+                          .filter(Boolean)
+                          .join(', ') || '—'}
+                      </div>
+                      <div className="text-[11px]">
+                        <span className="font-semibold">Phone:</span>{' '}
+                        {statementAgent.MobileNumber || '—'}
+                      </div>
+                      <div className="text-[11px]">
+                        <span className="font-semibold">Email:</span> {statementAgent.Email || '—'}
+                      </div>
+                    </div>
+                    <div className="sm:col-span-5 flex flex-col justify-center text-center divide-y divide-slate-400">
+                      <div className="py-1 font-bold text-xs">Statement</div>
+                      <div className="py-1 font-semibold text-[11px]">
+                        From:{' '}
+                        {statementFrom
+                          ? formatSlashDate(statementFrom)
+                          : txs.length > 0
+                          ? formatSlashDate(txs[0].IsoTimestamp)
+                          : formatSlashDate(new Date())}{' '}
+                        to{' '}
+                        {statementTo
+                          ? formatSlashDate(statementTo)
+                          : txs.length > 0
+                          ? formatSlashDate(txs[txs.length - 1].IsoTimestamp)
+                          : formatSlashDate(new Date())}
+                      </div>
+                      <div className="py-2 font-bold text-sm uppercase">
+                        AGENT : {statementAgent.CompanyName}
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-amber-300 text-slate-900 font-bold border-b border-slate-300 text-[11px] uppercase">
-                          <th className="py-2.5 px-3 border-r border-slate-300">N.NO</th>
-                          <th className="py-2.5 px-3 border-r border-slate-300">DATE</th>
-                          <th className="py-2.5 px-3 border-r border-slate-300">VOUCHER</th>
-                          <th className="py-2.5 px-3 border-r border-slate-300">PNR</th>
-                          <th className="py-2.5 px-3 border-r border-slate-300">DETAILS OF TRANSACTION</th>
-                          <th className="py-2.5 px-3 border-r border-slate-300 text-right">DEBIT AMT</th>
-                          <th className="py-2.5 px-3 border-r border-slate-300 text-right">CREDIT AMT</th>
-                          <th className="py-2.5 px-3 text-right">BALANCE .CR</th>
+                        <tr className="bg-[#A9D08E] text-slate-900 font-bold border-b border-slate-400 text-[11px] uppercase">
+                          <th className="py-2 px-3 border-r border-slate-400">N.NO</th>
+                          <th className="py-2 px-3 border-r border-slate-400">DATE</th>
+                          <th className="py-2 px-3 border-r border-slate-400">VOUCHER</th>
+                          <th className="py-2 px-3 border-r border-slate-400">PNR</th>
+                          <th className="py-2 px-3 border-r border-slate-400">DETAILS OF TRANSACTION</th>
+                          <th className="py-2 px-3 border-r border-slate-400 text-right">DEBIT AMT</th>
+                          <th className="py-2 px-3 border-r border-slate-400 text-right">CREDIT AMT</th>
+                          <th className="py-2 px-3 text-right">BALANCE .CR</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">

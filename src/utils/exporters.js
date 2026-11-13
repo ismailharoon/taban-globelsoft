@@ -598,6 +598,47 @@ export function downloadWordManifest(segment, passengers = []) {
 /**
  * Generates an authentic OpenXML .xlsx Credit/Debit Statement for a Partner Agency
  */
+const STATEMENT_STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <numFmts count="1">
+    <numFmt numFmtId="164" formatCode="0.00"/>
+  </numFmts>
+  <fonts count="4">
+    <font><sz val="11"/><name val="Calibri"/></font>
+    <font><b/><sz val="11"/><name val="Calibri"/></font>
+    <font><b/><sz val="14"/><name val="Calibri"/></font>
+    <font><b/><sz val="12"/><name val="Calibri"/></font>
+  </fonts>
+  <fills count="4">
+    <fill><patternFill patternType="none"/></fill>
+    <fill><patternFill patternType="gray125"/></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFA9D08E"/></patternFill></fill>
+  </fills>
+  <borders count="2">
+    <border><left/><right/><top/><bottom/><diagonal/></border>
+    <border>
+      <left style="thin"><color rgb="FF000000"/></left>
+      <right style="thin"><color rgb="FF000000"/></right>
+      <top style="thin"><color rgb="FF000000"/></top>
+      <bottom style="thin"><color rgb="FF000000"/></bottom>
+      <diagonal/>
+    </border>
+  </borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+  <cellXfs count="8">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
+    <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+    <xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+    <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+    <xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+    <xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+    <xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
+  </cellXfs>
+  <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`;
+
 export function downloadAgentStatementExcel(agent, transactions = [], dateRange = {}) {
   const safeName = String(agent?.CompanyName || 'Agent')
     .replace(/[^a-zA-Z0-9_-]+/g, '_')
@@ -655,35 +696,72 @@ export function downloadAgentStatementExcel(agent, transactions = [], dateRange 
     ? formatSlashDate(sorted[sorted.length - 1].IsoTimestamp)
     : formatSlashDate(new Date());
 
+  const fullAddr = [agent?.Address, agent?.City, agent?.Country].filter(Boolean).join(', ');
   const xmlRows = [];
 
-  // Row 1: BOOKLY / Statement
+  // Rows 1-5: Grey bordered header block matching reference screenshot
   xmlRows.push(
-    `<row r="1">${makeStringCell('A1', 1, 'BOOKLY')}${makeStringCell('G1', 1, 'Statement')}</row>`
+    `<row r="1" ht="20" customHeight="1">${[
+      makeStringCell('A1', 2, 'BOOKLY-'),
+      makeStringCell('B1', 2, ''),
+      makeStringCell('C1', 2, ''),
+      makeStringCell('D1', 2, ''),
+      makeStringCell('E1', 1, ''),
+      makeStringCell('F1', 3, 'Statement'),
+      makeStringCell('G1', 3, ''),
+      makeStringCell('H1', 3, '')
+    ].join('')}</row>`
   );
-  // Row 2: Date Range
   xmlRows.push(
-    `<row r="2">${makeStringCell('G2', 0, `From: ${fromLabel} to ${toLabel}`)}</row>`
+    `<row r="2" ht="18" customHeight="1">${[
+      makeStringCell('A2', 2, ''),
+      makeStringCell('B2', 2, ''),
+      makeStringCell('C2', 2, ''),
+      makeStringCell('D2', 2, ''),
+      makeStringCell('E2', 1, ''),
+      makeStringCell('F2', 3, `From:${fromLabel} to ${toLabel}`),
+      makeStringCell('G2', 3, ''),
+      makeStringCell('H2', 3, '')
+    ].join('')}</row>`
   );
-  // Row 3: Address / Agent Name
-  const fullAddr = [agent?.Address, agent?.City, agent?.Country].filter(Boolean).join(', ');
   xmlRows.push(
-    `<row r="3">${makeStringCell('A3', 0, `ADDRESS: ${fullAddr || '—'}`)}${makeStringCell(
-      'G3',
-      1,
-      `AGENT : ${String(agent?.CompanyName || '').toUpperCase()}`
-    )}</row>`
+    `<row r="3" ht="18" customHeight="1">${[
+      makeStringCell('A3', 1, `ADDRESS: ${fullAddr || ''}`),
+      makeStringCell('B3', 1, ''),
+      makeStringCell('C3', 1, ''),
+      makeStringCell('D3', 1, ''),
+      makeStringCell('E3', 1, ''),
+      makeStringCell('F3', 4, `AGENT : ${String(agent?.CompanyName || '').toUpperCase()}`),
+      makeStringCell('G3', 4, ''),
+      makeStringCell('H3', 4, '')
+    ].join('')}</row>`
   );
-  // Row 4: Phone
   xmlRows.push(
-    `<row r="4">${makeStringCell('A4', 0, `Phone: ${agent?.MobileNumber || ''}`)}</row>`
+    `<row r="4" ht="18" customHeight="1">${[
+      makeStringCell('A4', 1, `Phone: ${agent?.MobileNumber || ''}`),
+      makeStringCell('B4', 1, ''),
+      makeStringCell('C4', 1, ''),
+      makeStringCell('D4', 1, ''),
+      makeStringCell('E4', 1, ''),
+      makeStringCell('F4', 4, ''),
+      makeStringCell('G4', 4, ''),
+      makeStringCell('H4', 4, '')
+    ].join('')}</row>`
   );
-  // Row 5: Email
   xmlRows.push(
-    `<row r="5">${makeStringCell('A5', 0, `Email: ${agent?.Email || ''}`)}</row>`
+    `<row r="5" ht="18" customHeight="1">${[
+      makeStringCell('A5', 1, `Email: ${agent?.Email || ''}`),
+      makeStringCell('B5', 1, ''),
+      makeStringCell('C5', 1, ''),
+      makeStringCell('D5', 1, ''),
+      makeStringCell('E5', 1, ''),
+      makeStringCell('F5', 3, ''),
+      makeStringCell('G5', 3, ''),
+      makeStringCell('H5', 3, '')
+    ].join('')}</row>`
   );
 
-  // Row 6: Table headers (Yellow fill s="2")
+  // Row 6: Green table headers (s="5")
   const tableHeaders = [
     'N.NO',
     'DATE',
@@ -695,8 +773,8 @@ export function downloadAgentStatementExcel(agent, transactions = [], dateRange 
     'BALANCE .CR'
   ];
   xmlRows.push(
-    `<row r="6">${tableHeaders
-      .map((h, i) => makeStringCell(`${cols[i]}6`, 2, h))
+    `<row r="6" ht="20" customHeight="1">${tableHeaders
+      .map((h, i) => makeStringCell(`${cols[i]}6`, 5, h))
       .join('')}</row>`
   );
 
@@ -707,14 +785,14 @@ export function downloadAgentStatementExcel(agent, transactions = [], dateRange 
       : Number(agent?.CreditLimitBalance) || 0;
   xmlRows.push(
     `<row r="7">${[
-      makeStringCell('A7', 0, ''),
-      makeStringCell('B7', 0, ''),
-      makeStringCell('C7', 1, 'OPENING'),
-      makeStringCell('D7', 0, ''),
-      makeStringCell('E7', 1, 'OPENING BALANCE .CR.....'),
-      makeStringCell('F7', 0, ''),
-      makeStringCell('G7', 0, ''),
-      makeNumberCell('H7', 1, openingBal)
+      makeStringCell('A7', 6, ''),
+      makeStringCell('B7', 6, ''),
+      makeStringCell('C7', 6, 'OPENING'),
+      makeStringCell('D7', 6, ''),
+      makeStringCell('E7', 0, 'OPENING BALANCE .CR.....'),
+      makeStringCell('F7', 7, ''),
+      makeStringCell('G7', 7, ''),
+      makeNumberCell('H7', 7, openingBal)
     ].join('')}</row>`
   );
 
@@ -724,14 +802,14 @@ export function downloadAgentStatementExcel(agent, transactions = [], dateRange 
     const voucher = tx.Voucher || (isCredit ? 'RV' : 'SALE');
     const slashDate = formatSlashDate(tx.IsoTimestamp) || tx.DateTime || '';
     const cells = [
-      makeNumberCell(`A${r}`, 0, idx + 1),
-      makeStringCell(`B${r}`, 0, slashDate),
-      makeStringCell(`C${r}`, 0, voucher),
-      makeStringCell(`D${r}`, 0, tx.ReferencePNR || ''),
+      makeNumberCell(`A${r}`, 6, idx + 1),
+      makeStringCell(`B${r}`, 6, slashDate),
+      makeStringCell(`C${r}`, 6, voucher),
+      makeStringCell(`D${r}`, 6, tx.ReferencePNR || ''),
       makeStringCell(`E${r}`, 0, tx.Description || ''),
-      isCredit ? makeStringCell(`F${r}`, 0, '') : makeNumberCell(`F${r}`, 0, tx.Amount),
-      isCredit ? makeNumberCell(`G${r}`, 0, tx.Amount) : makeStringCell(`G${r}`, 0, ''),
-      makeNumberCell(`H${r}`, 0, Number(tx.CurrentBalance) || 0)
+      isCredit ? makeStringCell(`F${r}`, 7, '') : makeNumberCell(`F${r}`, 7, tx.Amount),
+      isCredit ? makeNumberCell(`G${r}`, 7, tx.Amount) : makeStringCell(`G${r}`, 7, ''),
+      makeNumberCell(`H${r}`, 7, Number(tx.CurrentBalance) || 0)
     ].join('');
     xmlRows.push(`<row r="${r}">${cells}</row>`);
   });
@@ -743,14 +821,25 @@ export function downloadAgentStatementExcel(agent, transactions = [], dateRange 
   <sheetViews><sheetView tabSelected="1" workbookViewId="0"/></sheetViews>
   <sheetFormatPr defaultRowHeight="16"/>
   <cols>
-    <col min="1" max="1" width="8" customWidth="1"/>
-    <col min="2" max="2" width="14" customWidth="1"/>
-    <col min="3" max="3" width="12" customWidth="1"/>
-    <col min="4" max="4" width="12" customWidth="1"/>
-    <col min="5" max="5" width="46" customWidth="1"/>
+    <col min="1" max="1" width="7" customWidth="1"/>
+    <col min="2" max="2" width="13" customWidth="1"/>
+    <col min="3" max="3" width="11" customWidth="1"/>
+    <col min="4" max="4" width="11" customWidth="1"/>
+    <col min="5" max="5" width="48" customWidth="1"/>
     <col min="6" max="8" width="16" customWidth="1"/>
   </cols>
   <sheetData>${xmlRows.join('')}</sheetData>
+  <mergeCells count="9">
+    <mergeCell ref="A1:D2"/>
+    <mergeCell ref="A3:D3"/>
+    <mergeCell ref="A4:D4"/>
+    <mergeCell ref="A5:D5"/>
+    <mergeCell ref="E1:E5"/>
+    <mergeCell ref="F1:H1"/>
+    <mergeCell ref="F2:H2"/>
+    <mergeCell ref="F3:H4"/>
+    <mergeCell ref="F5:H5"/>
+  </mergeCells>
 </worksheet>`;
 
   const sharedStringsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -791,7 +880,7 @@ export function downloadAgentStatementExcel(agent, transactions = [], dateRange 
       { name: '_rels/.rels', content: rootRelsXml },
       { name: 'xl/_rels/workbook.xml.rels', content: wbRelsXml },
       { name: 'xl/workbook.xml', content: workbookXml },
-      { name: 'xl/styles.xml', content: REFERENCE_EXCEL_STYLES_XML },
+      { name: 'xl/styles.xml', content: STATEMENT_STYLES_XML },
       { name: 'xl/sharedStrings.xml', content: sharedStringsXml },
       { name: 'xl/worksheets/sheet1.xml', content: sheetXml }
     ],
