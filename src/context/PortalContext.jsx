@@ -716,6 +716,12 @@ export function PortalProvider({ children }) {
     const children = Passengers.filter((p) => p.PassengerType === 'Child').length;
     const infants = Passengers.filter((p) => p.PassengerType === 'Infant').length;
 
+    if (isSubAgent && adults + children > 9) {
+      throw new Error(
+        'Sub-Agents can book a maximum of 9 passengers (Adults + Children) per booking.'
+      );
+    }
+
     let totalPrice = 0;
     const isRoundTrip = TripType === 'Round Trip';
     if (selectedSegments.length > 0) {

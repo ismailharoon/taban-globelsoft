@@ -783,8 +783,15 @@ export default function FlightPOS() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
             {/* PASSENGERS BOX */}
             <div className="p-3.5 rounded-xl border border-slate-200 bg-white space-y-2.5">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                PASSENGERS
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                  PASSENGERS
+                </span>
+                {isSubAgent && (
+                  <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                    Max 9 (Adt+Chd): {adultsCount + childrenCount}/9
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center justify-between">
@@ -805,8 +812,22 @@ export default function FlightPOS() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => setAdultsCount((c) => c + 1)}
-                    className="w-7 h-7 rounded-full bg-slate-100 hover:bg-[#1B3664] text-[#1B3664] hover:text-white flex items-center justify-center transition cursor-pointer"
+                    disabled={isSubAgent && adultsCount + childrenCount >= 9}
+                    onClick={() =>
+                      setAdultsCount((c) =>
+                        isSubAgent && c + childrenCount >= 9 ? c : c + 1
+                      )
+                    }
+                    title={
+                      isSubAgent && adultsCount + childrenCount >= 9
+                        ? 'Sub-Agent limit: Maximum 9 Adults + Children per booking'
+                        : 'Add Adult'
+                    }
+                    className={`w-7 h-7 rounded-full flex items-center justify-center transition ${
+                      isSubAgent && adultsCount + childrenCount >= 9
+                        ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                        : 'bg-slate-100 hover:bg-[#1B3664] text-[#1B3664] hover:text-white cursor-pointer'
+                    }`}
                   >
                     <Plus className="w-3 h-3" />
                   </button>
@@ -831,8 +852,22 @@ export default function FlightPOS() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => setChildrenCount((c) => c + 1)}
-                    className="w-7 h-7 rounded-full bg-slate-100 hover:bg-[#1B3664] text-[#1B3664] hover:text-white flex items-center justify-center transition cursor-pointer"
+                    disabled={isSubAgent && adultsCount + childrenCount >= 9}
+                    onClick={() =>
+                      setChildrenCount((c) =>
+                        isSubAgent && adultsCount + c >= 9 ? c : c + 1
+                      )
+                    }
+                    title={
+                      isSubAgent && adultsCount + childrenCount >= 9
+                        ? 'Sub-Agent limit: Maximum 9 Adults + Children per booking'
+                        : 'Add Child'
+                    }
+                    className={`w-7 h-7 rounded-full flex items-center justify-center transition ${
+                      isSubAgent && adultsCount + childrenCount >= 9
+                        ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                        : 'bg-slate-100 hover:bg-[#1B3664] text-[#1B3664] hover:text-white cursor-pointer'
+                    }`}
                   >
                     <Plus className="w-3 h-3" />
                   </button>
