@@ -861,6 +861,7 @@ export function PortalProvider({ children }) {
   const issueTicket = async (id) => {
     const loginId = user?.LoginID || 'test';
     const existingBooking = (dbState.bookings || []).find((b) => b.AirGroupBookingID === id);
+    const enrichedBooking = (enriched.bookings || []).find((b) => b.AirGroupBookingID === id);
     if (!existingBooking) throw new Error('Booking not found.');
     if (existingBooking.ApprovalStatus === 'Ticket Issued') {
       throw new Error('Ticket is already issued.');
@@ -912,7 +913,9 @@ export function PortalProvider({ children }) {
                 ? `PAX${adtCnnCount || 1} + ${infCount}`
                 : `${adtCnnCount || 1} PAX`;
             const segList =
-              Array.isArray(booking.SegmentIDs) && booking.SegmentIDs.length > 0
+              enrichedBooking?.Segments && enrichedBooking.Segments.length > 0
+                ? enrichedBooking.Segments
+                : Array.isArray(booking.SegmentIDs) && booking.SegmentIDs.length > 0
                 ? booking.SegmentIDs.map((sid) =>
                     (draft.segments || []).find((s) => s.AirGroupSegmentID === sid)
                   ).filter(Boolean)
@@ -921,12 +924,20 @@ export function PortalProvider({ children }) {
                     (s) => s.AirGroupSegmentID === booking.AirGroupSegmentID
                   )
                 : [];
-            const routeStr =
-              segList.length > 1
-                ? `${segList[0].DepartureIata}-${segList[0].ArrivalIata}-${segList[segList.length - 1].ArrivalIata}`
-                : segList.length === 1
-                ? `${segList[0].DepartureIata}-${segList[0].ArrivalIata}`
-                : '';
+            let routeStr = '';
+            if (segList.length === 1) {
+              routeStr = `${segList[0].DepartureIata}-${segList[0].ArrivalIata}`;
+            } else if (segList.length > 1) {
+              routeStr = `${segList[0].DepartureIata}-${segList
+                .map((s) => s.ArrivalIata)
+                .join('-')}`;
+            } else {
+              const titleText = String(enrichedBooking?.FlightTitle || booking.FlightTitle || '');
+              const iataMatch = titleText.match(/([A-Z]{3})\s*(?:→|⇄|->|-)\s*([A-Z]{3})/i);
+              if (iataMatch) {
+                routeStr = `${iataMatch[1].toUpperCase()}-${iataMatch[2].toUpperCase()}`;
+              }
+            }
             const tripLabel = String(booking.TripType || 'ONE WAY').toUpperCase();
             const routePart = routeStr ? ` ${routeStr}` : '';
             const ticketAmtPart = infCount > 0 ? '' : ` (TICKET AMT X${adtCnnCount || 1})`;
