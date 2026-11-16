@@ -137,6 +137,36 @@ export function calculateSegmentPassengerTotal(
   };
 }
 
+function formatSaleTransactionDescription(booking) {
+  if (!booking) return '';
+  const segs = Array.isArray(booking.Segments) ? booking.Segments : [];
+  const firstSeg = segs[0];
+  let datePart = '';
+  if (firstSeg?.DepartureDate) {
+    const d = new Date(firstSeg.DepartureDate);
+    if (!isNaN(d.getTime())) {
+      const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      datePart = `${String(d.getDate()).padStart(2, '0')}-${MONTHS[d.getMonth()]}`;
+    }
+  }
+  let routePart = '';
+  if (segs.length === 1) {
+    routePart = `${segs[0].DepartureIata}-${segs[0].ArrivalIata}`;
+  } else if (segs.length > 1) {
+    routePart = `${segs[0].DepartureIata}-${segs.map((s) => s.ArrivalIata).join('-')}`;
+  } else if (booking.FlightTitle) {
+    const m = String(booking.FlightTitle).match(/([A-Z]{3})\s*(?:→|⇄|->|-)\s*([A-Z]{3})/i);
+    if (m) routePart = `${m[1].toUpperCase()}-${m[2].toUpperCase()}`;
+  }
+  const tripPart = String(booking.TripType || 'ONEWAY')
+    .toUpperCase()
+    .replace(/\s+/g, '');
+  const adtCnn = (Number(booking.AdultCount) || 0) + (Number(booking.ChildCount) || 0) || 1;
+  const inf = Number(booking.InfantCount) || 0;
+  const paxPart = inf > 0 ? `${adtCnn} PAX + ${inf}` : `${adtCnn} PAX`;
+  return [datePart, routePart, tripPart, paxPart].filter(Boolean).join(' ');
+}
+
 function computeEnriched(db) {
   const rawSegments = db.segments || [];
   const rawFlights = db.flights || [];
@@ -345,6 +375,17 @@ function computeEnriched(db) {
   );
   const totalSales = validSalesBookings.reduce((acc, b) => acc + (Number(b.TotalPrice) || 0), 0);
 
+  const bookingsByPnr = Object.fromEntries(bookings.map((b) => [b.PNR, b]));
+  const enrichedTransactions = (db.creditTransactions || []).map((tx) => {
+    if (tx.Type === 'DEBIT' && tx.ReferencePNR && bookingsByPnr[tx.ReferencePNR]) {
+      const formatted = formatSaleTransactionDescription(bookingsByPnr[tx.ReferencePNR]);
+      if (formatted) {
+        return { ...tx, Description: formatted };
+      }
+    }
+    return tx;
+  });
+
   return {
     stats: {
       TotalSubAgents: (db.subAgents || []).length,
@@ -359,7 +400,7 @@ function computeEnriched(db) {
     flights,
     bookings,
     subAgents: db.subAgents || [],
-    creditTransactions: db.creditTransactions || []
+    creditTransactions: enrichedTransactions
   };
 }
 
@@ -906,12 +947,6 @@ export function PortalProvider({ children }) {
             }
             const nextBal = prevBal - fare;
             ag.CreditLimitBalance = nextBal;
-            const adtCnnCount = (Number(booking.AdultCount) || 0) + (Number(booking.ChildCount) || 0);
-            const infCount = Number(booking.InfantCount) || 0;
-            const paxLabel =
-              infCount > 0
-                ? `PAX${adtCnnCount || 1} + ${infCount}`
-                : `${adtCnnCount || 1} PAX`;
             const segList =
               enrichedBooking?.Segments && enrichedBooking.Segments.length > 0
                 ? enrichedBooking.Segments
@@ -924,23 +959,10 @@ export function PortalProvider({ children }) {
                     (s) => s.AirGroupSegmentID === booking.AirGroupSegmentID
                   )
                 : [];
-            let routeStr = '';
-            if (segList.length === 1) {
-              routeStr = `${segList[0].DepartureIata}-${segList[0].ArrivalIata}`;
-            } else if (segList.length > 1) {
-              routeStr = `${segList[0].DepartureIata}-${segList
-                .map((s) => s.ArrivalIata)
-                .join('-')}`;
-            } else {
-              const titleText = String(enrichedBooking?.FlightTitle || booking.FlightTitle || '');
-              const iataMatch = titleText.match(/([A-Z]{3})\s*(?:→|⇄|->|-)\s*([A-Z]{3})/i);
-              if (iataMatch) {
-                routeStr = `${iataMatch[1].toUpperCase()}-${iataMatch[2].toUpperCase()}`;
-              }
-            }
-            const tripLabel = String(booking.TripType || 'ONE WAY').toUpperCase();
-            const routePart = routeStr ? ` ${routeStr}` : '';
-            const ticketAmtPart = infCount > 0 ? '' : ` (TICKET AMT X${adtCnnCount || 1})`;
+            const saleDesc = formatSaleTransactionDescription({
+              ...booking,
+              Segments: segList
+            });
             draft.creditTransactions = draft.creditTransactions || [];
             draft.creditTransactions.push({
               TransactionID: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -950,7 +972,7 @@ export function PortalProvider({ children }) {
               IsoTimestamp: new Date().toISOString(),
               Voucher: 'SALE',
               Type: 'DEBIT',
-              Description: `${paxLabel}${routePart} ${tripLabel} ISSUED${ticketAmtPart}`,
+              Description: saleDesc || `PNR ${booking.PNR} ISSUED`,
               ReferencePNR: booking.PNR,
               PreviousBalance: prevBal,
               Amount: fare,
