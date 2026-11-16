@@ -417,11 +417,11 @@ export default function Dashboard() {
                 </div>
                 <div className="p-3 rounded-lg bg-red-50 border border-red-200">
                   <div className="flex items-center justify-between text-xs font-medium text-red-800">
-                    <span>Rejected / Void</span>
+                    <span>Rejected / Cancelled</span>
                     <XCircle className="w-3.5 h-3.5" />
                   </div>
                   <div className="text-xl font-semibold font-display mt-1 text-red-950">
-                    {statusCounts.Rejected + statusCounts.Void}
+                    {bookings.filter((b) => b.ApprovalStatus === 'Rejected' || b.ApprovalStatus === 'Cancelled').length}
                   </div>
                 </div>
               </div>

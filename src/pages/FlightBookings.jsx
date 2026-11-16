@@ -233,7 +233,7 @@ export default function FlightBookings() {
 
         {/* Status Filter Pills */}
         <div className="flex flex-wrap items-center gap-1.5">
-          {STATUS_TABS.map((tab) => {
+          {STATUS_TABS.filter((tab) => !isSubAgent || tab.key !== 'Ticket Void').map((tab) => {
             const active = statusFilter === tab.key;
             return (
               <button
