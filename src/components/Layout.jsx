@@ -138,21 +138,18 @@ export default function Layout({ children }) {
           sidebarCollapsed ? 'w-16' : 'w-60'
         } ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
-        {/* Brand Header with Taban Air Logo */}
+        {/* Brand Header */}
         <div className="h-14 px-4 flex items-center justify-between border-b border-slate-800 bg-[#0B1221]">
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <img
-              src="/images/Taban Air Gradient Airline Logo.png"
-              alt="Taban Air"
-              className="w-8 h-8 rounded-lg bg-white p-0.5 object-contain shrink-0 shadow-xs"
-            />
-            {!sidebarCollapsed && (
+            {!sidebarCollapsed ? (
               <div className="leading-tight">
                 <div className="font-display font-semibold text-sm tracking-wide text-white flex items-center gap-1.5">
                   BOOKLY <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#1B3664] text-white font-mono">OTA</span>
                 </div>
-                <p className="text-[10px] text-slate-400 truncate">Taban Air Booking System</p>
+                <p className="text-[10px] text-slate-400 truncate">B2B Booking &amp; Inventory</p>
               </div>
+            ) : (
+              <div className="font-display font-bold text-xs text-white tracking-wider">BK</div>
             )}
           </div>
           <button
@@ -494,18 +491,13 @@ export default function Layout({ children }) {
         {/* FOOTER */}
         <footer className="bg-white border-t border-slate-200 px-6 py-3 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500">
           <div className="flex items-center gap-2">
-            <img
-              src="/images/Taban Air Gradient Airline Logo.png"
-              alt="Taban Air"
-              className="w-5 h-5 object-contain"
-            />
             <span>
-              <b className="text-[#1B3664]">BOOKLY</b> • Taban Air B2B Booking & Inventory System
+              <b className="text-[#1B3664]">BOOKLY</b> • B2B Booking &amp; Inventory System
             </span>
           </div>
           <div className="flex items-center gap-3 mt-1 sm:mt-0 text-[11px]">
             <span className="w-2 h-2 rounded-full bg-[#1B3664]" />
-            <span>Taban Air Portal</span>
+            <span>B2B Aviation Portal</span>
           </div>
         </footer>
       </div>

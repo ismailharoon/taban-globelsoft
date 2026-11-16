@@ -975,7 +975,7 @@ export default function ManageSubAgents() {
         const openingBal =
           txs.length > 0
             ? Number(txs[0].PreviousBalance) || 0
-            : Number(statementAgent.CreditLimitBalance) || 0;
+            : Number(statementAgent.OpeningBalance ?? statementAgent.CreditLimitBalance) || 0;
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">

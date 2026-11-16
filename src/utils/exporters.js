@@ -782,7 +782,7 @@ export function downloadAgentStatementExcel(agent, transactions = [], dateRange 
   const openingBal =
     sorted.length > 0
       ? Number(sorted[0].PreviousBalance) || 0
-      : Number(agent?.CreditLimitBalance) || 0;
+      : Number(agent?.OpeningBalance ?? agent?.CreditLimitBalance) || 0;
   xmlRows.push(
     `<row r="7">${[
       makeStringCell('A7', 6, ''),

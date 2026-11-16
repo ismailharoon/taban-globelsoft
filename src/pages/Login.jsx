@@ -68,21 +68,16 @@ export default function Login() {
       <div className="hidden lg:flex lg:col-span-7 bg-gradient-to-br from-[#0B1528] via-[#15284B] to-[#1D314F] text-white p-10 flex-col justify-between relative overflow-hidden">
         <div className="relative z-10">
           <div className="inline-flex items-center gap-3 px-3.5 py-2 rounded-xl bg-white/10 border border-white/15">
-            <img
-              src="/images/Taban Air Gradient Airline Logo.png"
-              alt="Taban Air"
-              className="w-8 h-8 rounded bg-white p-0.5 object-contain"
-            />
             <span className="font-display font-semibold text-xs tracking-wider uppercase">
-              BOOKLY • TABAN AIR B2B PORTAL
+              BOOKLY • B2B AVIATION PORTAL
             </span>
           </div>
 
           <h1 className="font-display font-semibold text-3xl xl:text-4xl leading-snug mt-8 max-w-lg">
-            Taban Air Group Charter, POS Search & Sub-Agent Ticketing.
+            Group Charter, POS Search &amp; Sub-Agent Ticketing.
           </h1>
           <p className="text-white/75 text-sm mt-4 max-w-md leading-relaxed">
-            Search flight segments directly in POS, issue instant e-tickets with official Taban Air itinerary receipts, and export IATA PNL & Excel passenger manifests.
+            Search flight segments directly in POS, issue instant e-tickets with official itinerary receipts, and export IATA PNL &amp; Excel passenger manifests.
           </p>
 
           <div className="grid grid-cols-3 gap-3.5 mt-8 max-w-lg">
@@ -102,7 +97,7 @@ export default function Login() {
         </div>
 
         <div className="relative z-10 flex items-center justify-between text-xs text-white/60 border-t border-white/10 pt-5">
-          <span>Bookly • Taban Air Portal</span>
+          <span>Bookly • B2B Portal</span>
           <span className="font-mono">B2B Aviation System</span>
         </div>
       </div>
@@ -111,15 +106,10 @@ export default function Login() {
       <div className="lg:col-span-5 flex items-center justify-center p-6 sm:p-10 bg-white">
         <div className="w-full max-w-sm">
           <div className="flex items-center gap-3 mb-6">
-            <img
-              src="/images/Taban Air Gradient Airline Logo.png"
-              alt="Taban Air"
-              className="w-12 h-12 rounded-xl border border-slate-200 p-1 object-contain shadow-xs"
-            />
             <div>
               <h2 className="font-display font-semibold text-xl text-slate-900">Bookly Sign In</h2>
               <p className="text-xs text-slate-500">
-                Taban Air B2B Booking & Inventory System
+                B2B Booking &amp; Inventory System
               </p>
             </div>
           </div>

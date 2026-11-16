@@ -905,13 +905,31 @@ export function PortalProvider({ children }) {
             }
             const nextBal = prevBal - fare;
             ag.CreditLimitBalance = nextBal;
-            const paxCount =
-              (Number(booking.AdultCount) || 0) +
-                (Number(booking.ChildCount) || 0) +
-                (Number(booking.InfantCount) || 0) ||
-              (booking.Passengers || []).length ||
-              1;
+            const adtCnnCount = (Number(booking.AdultCount) || 0) + (Number(booking.ChildCount) || 0);
+            const infCount = Number(booking.InfantCount) || 0;
+            const paxLabel =
+              infCount > 0
+                ? `PAX${adtCnnCount || 1} + ${infCount}`
+                : `${adtCnnCount || 1} PAX`;
+            const segList =
+              Array.isArray(booking.SegmentIDs) && booking.SegmentIDs.length > 0
+                ? booking.SegmentIDs.map((sid) =>
+                    (draft.segments || []).find((s) => s.AirGroupSegmentID === sid)
+                  ).filter(Boolean)
+                : booking.AirGroupSegmentID
+                ? (draft.segments || []).filter(
+                    (s) => s.AirGroupSegmentID === booking.AirGroupSegmentID
+                  )
+                : [];
+            const routeStr =
+              segList.length > 1
+                ? `${segList[0].DepartureIata}-${segList[0].ArrivalIata}-${segList[segList.length - 1].ArrivalIata}`
+                : segList.length === 1
+                ? `${segList[0].DepartureIata}-${segList[0].ArrivalIata}`
+                : '';
             const tripLabel = String(booking.TripType || 'ONE WAY').toUpperCase();
+            const routePart = routeStr ? ` ${routeStr}` : '';
+            const ticketAmtPart = infCount > 0 ? '' : ` (TICKET AMT X${adtCnnCount || 1})`;
             draft.creditTransactions = draft.creditTransactions || [];
             draft.creditTransactions.push({
               TransactionID: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -921,7 +939,7 @@ export function PortalProvider({ children }) {
               IsoTimestamp: new Date().toISOString(),
               Voucher: 'SALE',
               Type: 'DEBIT',
-              Description: `${paxCount} PAX ${tripLabel} ISSUED (TICKET AMT X${paxCount})`,
+              Description: `${paxLabel}${routePart} ${tripLabel} ISSUED${ticketAmtPart}`,
               ReferencePNR: booking.PNR,
               PreviousBalance: prevBal,
               Amount: fare,
@@ -1131,11 +1149,13 @@ export function PortalProvider({ children }) {
         Reset2FA: false
       });
     }
+    const initialCredit = Number(p.CreditLimitBalance ?? p.CreditLimit) || 0;
     const newAgent = {
       ...p,
       SubCompanyID: subCompanyId,
       CreditLimit: Number(p.CreditLimit) || 0,
-      CreditLimitBalance: Number(p.CreditLimitBalance ?? p.CreditLimit) || 0,
+      CreditLimitBalance: initialCredit,
+      OpeningBalance: initialCredit,
       Created: new Date().toLocaleDateString('en-GB', {
         day: '2-digit',
         month: 'short',
@@ -1145,24 +1165,6 @@ export function PortalProvider({ children }) {
     };
     updateLocalDb((draft) => {
       draft.subAgents.unshift(newAgent);
-      if (newAgent.CreditLimitBalance > 0) {
-        draft.creditTransactions = draft.creditTransactions || [];
-        draft.creditTransactions.push({
-          TransactionID: `TXN-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-          SubCompanyID: newAgent.SubCompanyID,
-          CompanyName: newAgent.CompanyName,
-          DateTime: formatNow(),
-          IsoTimestamp: new Date().toISOString(),
-          Voucher: 'RV',
-          Type: 'CREDIT',
-          Description: `${newAgent.CreditLimitBalance} CREDIT TO ACCOUNT`,
-          ReferencePNR: '',
-          PreviousBalance: 0,
-          Amount: newAgent.CreditLimitBalance,
-          CurrentBalance: newAgent.CreditLimitBalance,
-          PerformedBy: user?.LoginID || 'admin'
-        });
-      }
       return draft;
     });
     addToast('SubAgent created successfully.', 'success');

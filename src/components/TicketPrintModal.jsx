@@ -165,7 +165,6 @@ export default function TicketPrintModal({ booking, onClose }) {
 
   const segments = booking.Segments || [];
   const passengers = booking.Passengers || [];
-  const logoUrl = `${window.location.origin}/images/Taban%20Air%20Gradient%20Airline%20Logo.png`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 backdrop-blur-xs p-4 overflow-y-auto">
@@ -173,11 +172,6 @@ export default function TicketPrintModal({ booking, onClose }) {
         {/* Top Modal Action Bar */}
         <div className="bg-[#0F172A] text-white px-5 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <img
-              src="/images/Taban Air Gradient Airline Logo.png"
-              alt="Taban Air"
-              className="w-7 h-7 rounded bg-white p-0.5 object-contain"
-            />
             <div>
               <h3 className="font-semibold text-sm tracking-wide">
                 International E-Ticket &amp; Boarding Itinerary — {booking.PNR}
@@ -230,27 +224,8 @@ export default function TicketPrintModal({ booking, onClose }) {
                 marginBottom: '16px'
               }}
             >
-              {/* Left: Airline Logo & Document Title */}
+              {/* Left: Document Title */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div
-                  style={{
-                    width: '66px',
-                    height: '66px',
-                    borderRadius: '10px',
-                    border: '1px solid #e2e8f0',
-                    backgroundColor: '#ffffff',
-                    padding: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <img
-                    src={logoUrl}
-                    alt="Taban Air"
-                    style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-                  />
-                </div>
                 <div>
                   <div
                     style={{
