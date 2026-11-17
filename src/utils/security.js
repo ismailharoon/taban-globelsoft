@@ -125,3 +125,153 @@ export async function verifyPassword(inputPlain, storedValue) {
   }
   return inputPlain === storedValue;
 }
+
+// --- RFC 6238 Google Authenticator TOTP Implementation ---
+const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
+export function generateTotpSecret(length = 16) {
+  const bytes = new Uint8Array(length);
+  if (typeof window !== 'undefined' && window.crypto?.getRandomValues) {
+    window.crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < length; i++) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  let out = '';
+  for (let i = 0; i < length; i++) {
+    out += BASE32_ALPHABET[bytes[i] % 32];
+  }
+  return out;
+}
+
+/**
+ * Generates a deterministic 16-char Base32 secret from LoginID so first-time QR stays stable
+ */
+export function deriveDefaultTotpSecret(loginId = 'user') {
+  const seed = `BOOKLY_2FA_SECRET_${String(loginId).trim().toLowerCase()}_V1`;
+  let out = '';
+  let h = 2166136261;
+  for (let i = 0; i < 16; i++) {
+    for (let j = 0; j < seed.length; j++) {
+      h ^= seed.charCodeAt(j) + i * 31;
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    out += BASE32_ALPHABET[h % 32];
+  }
+  return out;
+}
+
+function base32ToBytes(base32) {
+  const clean = String(base32 || '')
+    .toUpperCase()
+    .replace(/[^A-Z2-7]/g, '');
+  let bits = '';
+  for (let i = 0; i < clean.length; i++) {
+    const val = BASE32_ALPHABET.indexOf(clean[i]);
+    if (val >= 0) {
+      bits += val.toString(2).padStart(5, '0');
+    }
+  }
+  const byteCount = Math.floor(bits.length / 8);
+  const bytes = new Uint8Array(byteCount);
+  for (let i = 0; i < byteCount; i++) {
+    bytes[i] = parseInt(bits.slice(i * 8, i * 8 + 8), 2);
+  }
+  return bytes;
+}
+
+async function hmacSha1(keyBytes, messageBytes) {
+  if (typeof window !== 'undefined' && window.crypto?.subtle) {
+    const cryptoKey = await window.crypto.subtle.importKey(
+      'raw',
+      keyBytes,
+      { name: 'HMAC', hash: 'SHA-1' },
+      false,
+      ['sign']
+    );
+    const sig = await window.crypto.subtle.sign('HMAC', cryptoKey, messageBytes);
+    return new Uint8Array(sig);
+  }
+  // Pure-JS SHA-1 + HMAC fallback
+  const sha1 = (msg) => {
+    const rotr32 = (n, x) => (x << n) | (x >>> (32 - n));
+    const ml = msg.length * 8;
+    const padded = new Uint8Array(((msg.length + 9 + 63) >> 6) << 6);
+    padded.set(msg);
+    padded[msg.length] = 0x80;
+    const dv = new DataView(padded.buffer);
+    dv.setUint32(padded.length - 4, ml >>> 0, false);
+    dv.setUint32(padded.length - 8, Math.floor(ml / 0x100000000), false);
+    let h0 = 0x67452301, h1 = 0xefcdab89, h2 = 0x98badcfe, h3 = 0x10325476, h4 = 0xc3d2e1f0;
+    const W = new Uint32Array(80);
+    for (let i = 0; i < padded.length; i += 64) {
+      for (let t = 0; t < 16; t++) W[t] = dv.getUint32(i + t * 4, false);
+      for (let t = 16; t < 80; t++) W[t] = rotr32(1, W[t - 3] ^ W[t - 8] ^ W[t - 14] ^ W[t - 16]) >>> 0;
+      let a = h0, b = h1, c = h2, d = h3, e = h4;
+      for (let t = 0; t < 80; t++) {
+        const f = t < 20 ? (b & c) | (~b & d) : t < 40 ? b ^ c ^ d : t < 60 ? (b & c) | (b & d) | (c & d) : b ^ c ^ d;
+        const k = t < 20 ? 0x5a827999 : t < 40 ? 0x6ed9eba1 : t < 60 ? 0x8f1bbcdc : 0xca62c1d6;
+        const temp = (rotr32(5, a) + f + e + k + W[t]) >>> 0;
+        e = d; d = c; c = rotr32(30, b) >>> 0; b = a; a = temp;
+      }
+      h0 = (h0 + a) >>> 0; h1 = (h1 + b) >>> 0; h2 = (h2 + c) >>> 0; h3 = (h3 + d) >>> 0; h4 = (h4 + e) >>> 0;
+    }
+    const out = new Uint8Array(20);
+    const odv = new DataView(out.buffer);
+    odv.setUint32(0, h0, false); odv.setUint32(4, h1, false); odv.setUint32(8, h2, false);
+    odv.setUint32(12, h3, false); odv.setUint32(16, h4, false);
+    return out;
+  };
+  const blockSize = 64;
+  let k = keyBytes.length > blockSize ? sha1(keyBytes) : keyBytes;
+  const ipad = new Uint8Array(blockSize);
+  const opad = new Uint8Array(blockSize);
+  for (let i = 0; i < blockSize; i++) {
+    const kb = i < k.length ? k[i] : 0;
+    ipad[i] = kb ^ 0x36;
+    opad[i] = kb ^ 0x5c;
+  }
+  const inner = new Uint8Array(blockSize + messageBytes.length);
+  inner.set(ipad);
+  inner.set(messageBytes, blockSize);
+  const innerHash = sha1(inner);
+  const outer = new Uint8Array(blockSize + innerHash.length);
+  outer.set(opad);
+  outer.set(innerHash, blockSize);
+  return sha1(outer);
+}
+
+export async function generateTotpCodeAtStep(secretBase32, timeStep) {
+  const keyBytes = base32ToBytes(secretBase32);
+  const counterBytes = new Uint8Array(8);
+  const dv = new DataView(counterBytes.buffer);
+  dv.setUint32(0, Math.floor(timeStep / 0x100000000), false);
+  dv.setUint32(4, timeStep >>> 0, false);
+
+  const hmac = await hmacSha1(keyBytes, counterBytes);
+  const offset = hmac[hmac.length - 1] & 0x0f;
+  const binary =
+    ((hmac[offset] & 0x7f) << 24) |
+    ((hmac[offset + 1] & 0xff) << 16) |
+    ((hmac[offset + 2] & 0xff) << 8) |
+    (hmac[offset + 3] & 0xff);
+  return String(binary % 1000000).padStart(6, '0');
+}
+
+export async function verifyTotpToken(secretBase32, token, windowSteps = 1) {
+  const cleanToken = String(token || '').replace(/\s+/g, '');
+  if (!/^\d{6}$/.test(cleanToken) || !secretBase32) return false;
+  const currentStep = Math.floor(Date.now() / 1000 / 30);
+  for (let w = -windowSteps; w <= windowSteps; w++) {
+    const expected = await generateTotpCodeAtStep(secretBase32, currentStep + w);
+    if (expected === cleanToken) return true;
+  }
+  return false;
+}
+
+export function buildOtpAuthUri(loginId, secretBase32, issuer = 'Bookly') {
+  const cleanIssuer = encodeURIComponent(issuer);
+  const cleanLabel = encodeURIComponent(`${issuer}:${loginId}`);
+  return `otpauth://totp/${cleanLabel}?secret=${secretBase32}&issuer=${cleanIssuer}&algorithm=SHA1&digits=6&period=30`;
+}

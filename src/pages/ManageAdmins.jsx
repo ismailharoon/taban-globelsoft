@@ -69,6 +69,7 @@ export default function ManageAdmins() {
     adminUsers,
     createAdminUser,
     updateAdminUser,
+    resetAdmin2FA,
     deleteAdminUser,
     addToast
   } = usePortal();
@@ -283,6 +284,23 @@ export default function ManageAdmins() {
                     <td className="py-3 px-3 text-slate-500">{adm.Created || '—'}</td>
                     <td className="py-3 px-4 text-right">
                       <div className="inline-flex items-center justify-end gap-1.5">
+                        {adm.TwoFactorEnrolled && (
+                          <button
+                            onClick={() =>
+                              setConfirmDialog({
+                                title: 'Reset 2FA Authenticator',
+                                message: `Reset Google Authenticator 2FA for "${adm.FullName}" (${adm.LoginID})? They will scan a new QR code on next login.`,
+                                confirmLabel: 'Yes, Reset 2FA',
+                                variant: 'warning',
+                                action: () => resetAdmin2FA(adm.AdminID)
+                              })
+                            }
+                            className="px-2 py-1.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 font-medium text-[11px] transition cursor-pointer"
+                            title="Reset Google Authenticator 2FA"
+                          >
+                            Reset 2FA
+                          </button>
+                        )}
                         <button
                           onClick={() => openEditModal(adm)}
                           className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-[#1B3664] text-slate-700 hover:text-[#1B3664] font-medium text-[11px] inline-flex items-center gap-1 transition cursor-pointer"

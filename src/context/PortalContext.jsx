@@ -4,7 +4,11 @@ import {
   hashPassword,
   verifyPassword,
   isPasswordHashed,
-  validateStrongPassword
+  validateStrongPassword,
+  generateTotpSecret,
+  deriveDefaultTotpSecret,
+  verifyTotpToken,
+  buildOtpAuthUri
 } from '../utils/security';
 
 const PortalContext = createContext(null);
@@ -653,6 +657,9 @@ export function PortalProvider({ children }) {
           Role: adm.Role || 'Admin',
           AccountType: adm.Role === 'Master Admin' ? 'Master Admin' : 'Admin',
           AccountStatus: adm.AccountStatus || 'Enable',
+          TwoFactorSecret: adm.TwoFactorSecret || '',
+          TwoFactorEnrolled: Boolean(adm.TwoFactorEnrolled && !adm.Reset2FA),
+          Reset2FA: Boolean(adm.Reset2FA),
           Permissions:
             adm.Role === 'Master Admin'
               ? { ...ALL_ADMIN_PERMISSIONS }
@@ -689,7 +696,10 @@ export function PortalProvider({ children }) {
             Email: agent.Email || '',
             Designation: 'Sub Agent',
             AccountType: 'Sub Agent',
-            AccountStatus: agent.AccountStatus || 'Enable'
+            AccountStatus: agent.AccountStatus || 'Enable',
+            TwoFactorSecret: agent.TwoFactorSecret || '',
+            TwoFactorEnrolled: Boolean(agent.TwoFactorEnrolled && !agent.Reset2FA),
+            Reset2FA: Boolean(agent.Reset2FA)
           };
           matchedAgent = agent;
         }
@@ -717,11 +727,19 @@ export function PortalProvider({ children }) {
       SubCompanyName: matchedAgent?.CompanyName || 'Bookly'
     };
 
-    if (require2FA) {
+    const isEnrolled = Boolean(matchedUser.TwoFactorEnrolled && !matchedUser.Reset2FA);
+    const activeSecret =
+      matchedUser.TwoFactorSecret || deriveDefaultTotpSecret(matchedUser.LoginID);
+
+    if (require2FA || isEnrolled) {
       return {
         status: '2fa_required',
-        otpCodeHint: '482910',
-        manualKey: 'JBSWY3DPEHPK3PXP',
+        isEnrolled,
+        manualKey: isEnrolled ? '' : activeSecret,
+        otpAuthUri: isEnrolled
+          ? ''
+          : buildOtpAuthUri(matchedUser.LoginID, activeSecret, 'Bookly'),
+        secret: activeSecret,
         user: userObj
       };
     }
@@ -732,13 +750,71 @@ export function PortalProvider({ children }) {
     return { status: 'authenticated', user: userObj };
   };
 
-  const verifyOtpAndFinishLogin = async (pendingUser, otp) => {
-    if (!otp || String(otp).trim().length < 4) {
-      throw new Error('Please enter a valid OTP or 2FA authentication code.');
+  const verifyOtpAndFinishLogin = async (pendingUser, otp, secretFromLogin) => {
+    const cleanOtp = String(otp || '').replace(/\s+/g, '');
+    if (!/^\d{6}$/.test(cleanOtp)) {
+      throw new Error('Please enter the 6-digit code from your Google Authenticator app.');
     }
+
+    const secretToVerify =
+      secretFromLogin || deriveDefaultTotpSecret(pendingUser?.LoginID || 'user');
+    const isValid = await verifyTotpToken(secretToVerify, cleanOtp, 1);
+    if (!isValid) {
+      throw new Error(
+        'Invalid 6-digit Google Authenticator code. Please check your app and try again.'
+      );
+    }
+
+    // Persist TwoFactorEnrolled = true and TwoFactorSecret so future logins only ask for the 6-digit code
+    const cleanLogin = String(pendingUser?.LoginID || '').toLowerCase();
+    updateLocalDb((draft) => {
+      if (pendingUser?.SubCompanyID === 'ADMIN') {
+        const currentList = Array.isArray(draft.adminUsers) ? draft.adminUsers : [];
+        const hasMaster = currentList.some(
+          (a) =>
+            a.Role === 'Master Admin' ||
+            (a.LoginID && a.LoginID.toLowerCase() === DEFAULT_MASTER_ADMIN.LoginID.toLowerCase())
+        );
+        const list = hasMaster ? [...currentList] : [{ ...DEFAULT_MASTER_ADMIN }, ...currentList];
+        const idx = list.findIndex(
+          (a) => a.LoginID && a.LoginID.toLowerCase() === cleanLogin
+        );
+        if (idx !== -1) {
+          list[idx] = {
+            ...list[idx],
+            TwoFactorSecret: secretToVerify,
+            TwoFactorEnrolled: true,
+            Reset2FA: false
+          };
+        }
+        draft.adminUsers = list;
+      } else {
+        for (const ag of draft.subAgents || []) {
+          if (ag.LoginID && ag.LoginID.toLowerCase() === cleanLogin) {
+            ag.TwoFactorSecret = secretToVerify;
+            ag.TwoFactorEnrolled = true;
+            ag.Reset2FA = false;
+          }
+          if (Array.isArray(ag.Users)) {
+            ag.Users = ag.Users.map((u) =>
+              u.LoginID && u.LoginID.toLowerCase() === cleanLogin
+                ? {
+                    ...u,
+                    TwoFactorSecret: secretToVerify,
+                    TwoFactorEnrolled: true,
+                    Reset2FA: false
+                  }
+                : u
+            );
+          }
+        }
+      }
+      return draft;
+    });
+
     setUser(pendingUser);
     localStorage.setItem('ota_portal_user', JSON.stringify(pendingUser));
-    addToast(`2FA Verified. Welcome, ${pendingUser.FullName}`, 'success');
+    addToast(`Google Authenticator Verified. Welcome, ${pendingUser.FullName}`, 'success');
     return { status: 'authenticated' };
   };
 
@@ -1449,6 +1525,11 @@ export function PortalProvider({ children }) {
       if (!check.valid) throw new Error(check.error);
       nextPayload.PassCode = await hashPassword(nextPayload.PassCode);
     }
+    if (nextPayload.Reset2FA) {
+      nextPayload.TwoFactorSecret = generateTotpSecret(16);
+      nextPayload.TwoFactorEnrolled = false;
+      nextPayload.Reset2FA = false;
+    }
     updateLocalDb((draft) => {
       const ag = draft.subAgents.find((a) => a.SubCompanyID === subCompanyId);
       if (ag) {
@@ -1657,6 +1738,31 @@ export function PortalProvider({ children }) {
     addToast('Password changed and hashed (SHA-256) successfully.', 'success');
   };
 
+  const resetAdmin2FA = async (adminId) => {
+    const freshSecret = generateTotpSecret(16);
+    updateLocalDb((draft) => {
+      const currentList = Array.isArray(draft.adminUsers) ? draft.adminUsers : [];
+      const hasMaster = currentList.some(
+        (a) =>
+          a.Role === 'Master Admin' ||
+          (a.LoginID && a.LoginID.toLowerCase() === DEFAULT_MASTER_ADMIN.LoginID.toLowerCase())
+      );
+      const list = hasMaster ? [...currentList] : [{ ...DEFAULT_MASTER_ADMIN }, ...currentList];
+      const idx = list.findIndex((a) => a.AdminID === adminId);
+      if (idx !== -1) {
+        list[idx] = {
+          ...list[idx],
+          TwoFactorSecret: freshSecret,
+          TwoFactorEnrolled: false,
+          Reset2FA: false
+        };
+      }
+      draft.adminUsers = list;
+      return draft;
+    });
+    addToast('2FA has been reset. Admin will scan a new QR code on next login.', 'info');
+  };
+
   const deleteAdminUser = async (adminId) => {
     const target = (enriched.adminUsers || []).find((a) => a.AdminID === adminId);
     if (target?.Role === 'Master Admin') {
@@ -1757,6 +1863,7 @@ export function PortalProvider({ children }) {
         deleteSubAgentUser,
         createAdminUser,
         updateAdminUser,
+        resetAdmin2FA,
         deleteAdminUser,
         changeOwnPassword
       }}

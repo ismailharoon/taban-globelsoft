@@ -18,13 +18,16 @@ export default function Login() {
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [require2FA, setRequire2FA] = useState(false);
+  const [require2FA, setRequire2FA] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const [step, setStep] = useState('credentials');
   const [pendingUser, setPendingUser] = useState(null);
   const [otpCode, setOtpCode] = useState('');
-  const [manualKey, setManualKey] = useState('JBSWY3DPEHPK3PXP');
+  const [manualKey, setManualKey] = useState('');
+  const [otpAuthUri, setOtpAuthUri] = useState('');
+  const [totpSecret, setTotpSecret] = useState('');
+  const [isEnrolled, setIsEnrolled] = useState(false);
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -37,10 +40,14 @@ export default function Login() {
       const res = await login(loginId, password, require2FA);
       if (res.status === '2fa_required') {
         setPendingUser(res.user);
-        setManualKey(res.manualKey || 'JBSWY3DPEHPK3PXP');
+        setIsEnrolled(Boolean(res.isEnrolled));
+        setManualKey(res.manualKey || '');
+        setOtpAuthUri(res.otpAuthUri || '');
+        setTotpSecret(res.secret || '');
+        setOtpCode('');
         setStep('otp');
       } else {
-        navigate('/FlightPOS');
+        navigate('/');
       }
     } catch (err) {
       addToast(err.message, 'error');
@@ -53,8 +60,8 @@ export default function Login() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await verifyOtpAndFinishLogin(pendingUser, otpCode);
-      navigate('/FlightPOS');
+      await verifyOtpAndFinishLogin(pendingUser, otpCode, totpSecret);
+      navigate('/');
     } catch (err) {
       addToast(err.message, 'error');
     } finally {
@@ -185,20 +192,50 @@ export default function Login() {
             </form>
           ) : (
             <form onSubmit={handleOtpSubmit} className="space-y-4">
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                <div className="w-10 h-10 rounded-lg bg-[#1B3664] text-white flex items-center justify-center mx-auto mb-2">
-                  <QrCode className="w-5 h-5" />
+              {!isEnrolled ? (
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2.5">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1B3664] text-white text-[11px] font-semibold">
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>First-Time Google Authenticator Setup</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    Open <b>Google Authenticator</b> on your mobile, tap <b>+</b> &rarr; <b>Scan a QR code</b>, then enter the 6-digit code below.
+                  </p>
+                  {otpAuthUri && (
+                    <div className="flex justify-center py-1">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=170x170&ecc=M&data=${encodeURIComponent(
+                          otpAuthUri
+                        )}`}
+                        alt="Google Authenticator QR Code"
+                        className="w-40 h-40 rounded-lg border border-slate-200 bg-white p-2 shadow-xs"
+                      />
+                    </div>
+                  )}
+                  <div className="p-2 rounded-lg bg-white border border-slate-200 text-[11px]">
+                    <span className="text-slate-500">Or enter setup key manually:</span>
+                    <div className="font-mono font-bold text-[#1B3664] tracking-wider mt-0.5 select-all">
+                      {manualKey}
+                    </div>
+                  </div>
                 </div>
-                <h5 className="font-semibold text-xs text-slate-800">Scan QR Code / Enter OTP</h5>
-                <div className="mt-2 p-2 rounded bg-white border border-slate-200 text-xs">
-                  Manual Key:
-                  <div className="font-mono font-semibold text-[#1B3664] mt-0.5">{manualKey}</div>
+              ) : (
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1.5">
+                  <div className="w-10 h-10 rounded-lg bg-[#1B3664] text-white flex items-center justify-center mx-auto mb-1">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <h5 className="font-semibold text-xs text-slate-900">
+                    Google Authenticator Verification
+                  </h5>
+                  <p className="text-[11px] text-slate-600">
+                    Open the <b>Google Authenticator</b> app on your phone and enter the 6-digit code for <b>Bookly ({pendingUser?.LoginID})</b>.
+                  </p>
                 </div>
-              </div>
+              )}
 
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                  Enter 2FA Authentication Code
+                  6-Digit Google Authenticator Code *
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#1B3664]">
@@ -206,10 +243,12 @@ export default function Login() {
                   </span>
                   <input
                     type="text"
+                    inputMode="numeric"
+                    maxLength={6}
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
-                    placeholder="Enter 6-digit OTP"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 focus:border-[#1B3664] focus:outline-none text-xs font-mono"
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 focus:border-[#1B3664] focus:outline-none text-sm font-mono font-bold tracking-widest"
                     required
                   />
                 </div>
@@ -219,16 +258,16 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setStep('credentials')}
-                  className="px-4 py-2.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  className="px-4 py-2.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2.5 px-5 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-medium text-xs transition"
+                  className="flex-1 py-2.5 px-5 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-medium text-xs transition cursor-pointer"
                 >
-                  Verify OTP
+                  {isEnrolled ? 'Verify & Sign In' : 'Verify & Activate 2FA'}
                 </button>
               </div>
             </form>
