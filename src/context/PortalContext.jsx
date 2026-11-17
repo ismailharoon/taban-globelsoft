@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { initialSeedData } from '../data/seedData';
+import { hashPassword, verifyPassword, isPasswordHashed } from '../utils/security';
 
 const PortalContext = createContext(null);
 const STORAGE_KEY = 'ota_portal_clean_v1';
@@ -636,7 +637,7 @@ export function PortalProvider({ children }) {
       if (
         adm.LoginID &&
         adm.LoginID.trim().toLowerCase() === cleanLogin &&
-        adm.PassCode === password
+        (await verifyPassword(password, adm.PassCode))
       ) {
         matchedUser = {
           UserID: adm.AdminID || `ADM-${adm.LoginID}`,
@@ -663,7 +664,7 @@ export function PortalProvider({ children }) {
           if (
             u.LoginID &&
             u.LoginID.trim().toLowerCase() === cleanLogin &&
-            u.PassCode === password
+            (await verifyPassword(password, u.PassCode))
           ) {
             matchedUser = u;
             matchedAgent = agent;
@@ -674,7 +675,7 @@ export function PortalProvider({ children }) {
           !matchedUser &&
           agent.LoginID &&
           agent.LoginID.trim().toLowerCase() === cleanLogin &&
-          agent.PassCode === password
+          (await verifyPassword(password, agent.PassCode))
         ) {
           matchedUser = {
             UserID: `USR-${agent.SubCompanyID}`,
@@ -1251,13 +1252,14 @@ export function PortalProvider({ children }) {
   const createSubAgent = async (p) => {
     if (!p.CompanyName) throw new Error('Company Name is required.');
     const subCompanyId = `SUB-${Math.floor(205 + Math.random() * 800)}`;
+    const hashedPass = await hashPassword(p.PassCode || 'Pass@123');
     const initialUsers = [];
     if (p.LoginID && String(p.LoginID).trim()) {
       initialUsers.push({
         UserID: `USR-${Math.floor(100 + Math.random() * 9000)}`,
         SubCompanyID: subCompanyId,
         LoginID: String(p.LoginID).trim(),
-        PassCode: p.PassCode || 'Pass@123',
+        PassCode: hashedPass,
         FullName: p.FullName || p.CompanyName,
         Email: p.Email || '',
         Designation: 'Sub Agent',
@@ -1270,6 +1272,7 @@ export function PortalProvider({ children }) {
     const initialCredit = Number(p.CreditLimitBalance ?? p.CreditLimit) || 0;
     const newAgent = {
       ...p,
+      PassCode: hashedPass,
       SubCompanyID: subCompanyId,
       CreditLimit: Number(p.CreditLimit) || 0,
       CreditLimitBalance: initialCredit,
@@ -1393,11 +1396,12 @@ export function PortalProvider({ children }) {
     if (!u.LoginID || !u.FullName || !u.Email) {
       throw new Error('Login ID, Full Name, and Email are required.');
     }
+    const hashedPass = await hashPassword(u.PassCode || 'Pass@123');
     const newUser = {
       UserID: `USR-${Math.floor(100 + Math.random() * 9000)}`,
       SubCompanyID: subCompanyId,
       LoginID: u.LoginID,
-      PassCode: u.PassCode || 'Pass@123',
+      PassCode: hashedPass,
       FullName: u.FullName,
       Email: u.Email,
       Designation: u.Designation || 'Ticketing Executive',
@@ -1418,12 +1422,16 @@ export function PortalProvider({ children }) {
   };
 
   const updateSubAgentUser = async (subCompanyId, userId, payload) => {
+    const nextPayload = { ...payload };
+    if (nextPayload.PassCode && !isPasswordHashed(nextPayload.PassCode)) {
+      nextPayload.PassCode = await hashPassword(nextPayload.PassCode);
+    }
     updateLocalDb((draft) => {
       const ag = draft.subAgents.find((a) => a.SubCompanyID === subCompanyId);
       if (ag) {
         const idx = (ag.Users || []).findIndex((u) => u.UserID === userId);
         if (idx !== -1) {
-          ag.Users[idx] = { ...ag.Users[idx], ...payload };
+          ag.Users[idx] = { ...ag.Users[idx], ...nextPayload };
         }
       }
       return draft;
@@ -1460,10 +1468,11 @@ export function PortalProvider({ children }) {
       throw new Error(`Login ID "${cleanLogin}" is already in use.`);
     }
 
+    const hashedPass = await hashPassword(payload.PassCode);
     const newAdmin = {
       AdminID: `ADM-${Math.floor(1000 + Math.random() * 9000)}`,
       LoginID: cleanLogin,
-      PassCode: payload.PassCode,
+      PassCode: hashedPass,
       FullName: payload.FullName.trim(),
       Email: payload.Email || '',
       Designation: payload.Designation || 'Operations Admin',
@@ -1492,10 +1501,17 @@ export function PortalProvider({ children }) {
         : [DEFAULT_MASTER_ADMIN, ...currentList, newAdmin];
       return draft;
     });
-    addToast(`Admin "${newAdmin.FullName}" created successfully.`, 'success');
+    addToast(`Admin "${newAdmin.FullName}" created successfully (Password Hashed).`, 'success');
   };
 
   const updateAdminUser = async (adminId, payload) => {
+    const nextPayload = { ...payload };
+    if (nextPayload.PassCode && String(nextPayload.PassCode).trim()) {
+      nextPayload.PassCode = await hashPassword(String(nextPayload.PassCode).trim());
+    } else {
+      delete nextPayload.PassCode;
+    }
+
     updateLocalDb((draft) => {
       const currentList = Array.isArray(draft.adminUsers) ? draft.adminUsers : [];
       const hasMaster = currentList.some(
@@ -1510,18 +1526,103 @@ export function PortalProvider({ children }) {
         const isMaster = existing.Role === 'Master Admin';
         list[idx] = {
           ...existing,
-          ...payload,
-          Role: isMaster ? 'Master Admin' : payload.Role || existing.Role || 'Admin',
-          AccountStatus: isMaster ? 'Enable' : payload.AccountStatus || existing.AccountStatus,
+          ...nextPayload,
+          PassCode: nextPayload.PassCode || existing.PassCode,
+          Role: isMaster ? 'Master Admin' : nextPayload.Role || existing.Role || 'Admin',
+          AccountStatus: isMaster ? 'Enable' : nextPayload.AccountStatus || existing.AccountStatus,
           Permissions: isMaster
             ? { ...ALL_ADMIN_PERMISSIONS }
-            : { ...(payload.Permissions || existing.Permissions || {}) }
+            : { ...(nextPayload.Permissions || existing.Permissions || {}) }
         };
       }
       draft.adminUsers = list;
       return draft;
     });
     addToast('Admin account updated successfully.', 'success');
+  };
+
+  const changeOwnPassword = async (currentPassword, newPassword) => {
+    if (!user?.LoginID) throw new Error('You must be signed in to change your password.');
+    if (!currentPassword || !newPassword) {
+      throw new Error('Please enter both current and new password.');
+    }
+    const cleanNew = String(newPassword).trim();
+    if (cleanNew.length < 6) {
+      throw new Error('New password must be at least 6 characters long.');
+    }
+
+    const cleanLogin = user.LoginID.toLowerCase();
+
+    if (isAdmin) {
+      const admRecord = (enriched.adminUsers || []).find(
+        (a) => a.LoginID && a.LoginID.toLowerCase() === cleanLogin
+      );
+      if (!admRecord) throw new Error('Admin account record not found.');
+      const valid = await verifyPassword(currentPassword, admRecord.PassCode);
+      if (!valid) throw new Error('Current password is incorrect.');
+      const newHashed = await hashPassword(cleanNew);
+
+      updateLocalDb((draft) => {
+        const currentList = Array.isArray(draft.adminUsers) ? draft.adminUsers : [];
+        const hasMaster = currentList.some(
+          (a) =>
+            a.Role === 'Master Admin' ||
+            (a.LoginID && a.LoginID.toLowerCase() === DEFAULT_MASTER_ADMIN.LoginID.toLowerCase())
+        );
+        const list = hasMaster ? [...currentList] : [{ ...DEFAULT_MASTER_ADMIN }, ...currentList];
+        const idx = list.findIndex(
+          (a) => a.LoginID && a.LoginID.toLowerCase() === cleanLogin
+        );
+        if (idx !== -1) {
+          list[idx] = { ...list[idx], PassCode: newHashed };
+        }
+        draft.adminUsers = list;
+        return draft;
+      });
+      addToast('Password changed and hashed (SHA-256) successfully.', 'success');
+      return;
+    }
+
+    // Sub-Agent password change
+    let foundSubAgent = null;
+    let foundSubUser = null;
+    for (const ag of dbState.subAgents || []) {
+      for (const u of ag.Users || []) {
+        if (u.LoginID && u.LoginID.toLowerCase() === cleanLogin) {
+          foundSubAgent = ag;
+          foundSubUser = u;
+          break;
+        }
+      }
+      if (!foundSubUser && ag.LoginID && ag.LoginID.toLowerCase() === cleanLogin) {
+        foundSubAgent = ag;
+      }
+      if (foundSubAgent) break;
+    }
+
+    if (!foundSubAgent) throw new Error('User account record not found.');
+    const storedHash = foundSubUser ? foundSubUser.PassCode : foundSubAgent.PassCode;
+    const valid = await verifyPassword(currentPassword, storedHash);
+    if (!valid) throw new Error('Current password is incorrect.');
+    const newHashed = await hashPassword(cleanNew);
+
+    updateLocalDb((draft) => {
+      const ag = draft.subAgents.find((a) => a.SubCompanyID === foundSubAgent.SubCompanyID);
+      if (ag) {
+        if (ag.LoginID && ag.LoginID.toLowerCase() === cleanLogin) {
+          ag.PassCode = newHashed;
+        }
+        if (Array.isArray(ag.Users)) {
+          ag.Users = ag.Users.map((u) =>
+            u.LoginID && u.LoginID.toLowerCase() === cleanLogin
+              ? { ...u, PassCode: newHashed }
+              : u
+          );
+        }
+      }
+      return draft;
+    });
+    addToast('Password changed and hashed (SHA-256) successfully.', 'success');
   };
 
   const deleteAdminUser = async (adminId) => {
@@ -1624,7 +1725,8 @@ export function PortalProvider({ children }) {
         deleteSubAgentUser,
         createAdminUser,
         updateAdminUser,
-        deleteAdminUser
+        deleteAdminUser,
+        changeOwnPassword
       }}
     >
       {children}

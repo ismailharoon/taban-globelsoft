@@ -19,7 +19,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   Info,
-  ShieldCheck
+  ShieldCheck,
+  KeyRound
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
 import { formatCurrencyPKR } from '../utils/exporters';
@@ -63,9 +64,11 @@ export default function Layout({ children }) {
     segments,
     subAgents,
     toasts,
+    addToast,
     showTimeoutModal,
     setShowTimeoutModal,
-    resetDemoData
+    resetDemoData,
+    changeOwnPassword
   } = usePortal();
 
   const navigate = useNavigate();
@@ -74,6 +77,33 @@ export default function Layout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [openDropdown, setOpenDropdown] = useState(null);
+
+  // Change Password Modal State
+  const [showPassModal, setShowPassModal] = useState(false);
+  const [currentPass, setCurrentPass] = useState('');
+  const [newPass, setNewPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+
+  const handlePasswordChangeSubmit = async (e) => {
+    e.preventDefault();
+    if (newPass.trim().length < 6) {
+      addToast('New password must be at least 6 characters long.', 'error');
+      return;
+    }
+    if (newPass !== confirmPass) {
+      addToast('New password and confirmation do not match.', 'error');
+      return;
+    }
+    try {
+      await changeOwnPassword(currentPass, newPass);
+      setShowPassModal(false);
+      setCurrentPass('');
+      setNewPass('');
+      setConfirmPass('');
+    } catch (err) {
+      addToast(err.message, 'error');
+    }
+  };
 
   const visibleNavSections = React.useMemo(() => {
     return navSections
@@ -243,6 +273,13 @@ export default function Layout({ children }) {
 
         {/* Bottom Actions */}
         <div className="p-2.5 border-t border-slate-800 bg-[#0B1221] space-y-1">
+          <button
+            onClick={() => setShowPassModal(true)}
+            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            {!sidebarCollapsed && <span>Change Password</span>}
+          </button>
           <button
             onClick={() => setShowTimeoutModal(true)}
             className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
@@ -468,6 +505,17 @@ export default function Layout({ children }) {
                     <div className="text-[11px] text-white/75">{user?.Email || 'admin@bookly.com'}</div>
                   </div>
                   <div className="p-1.5">
+                    <button
+                      onClick={() => {
+                        setOpenDropdown(null);
+                        setShowPassModal(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-50 text-left cursor-pointer"
+                    >
+                      <KeyRound className="w-3.5 h-3.5 text-[#1B3664]" />
+                      <span>Change Password</span>
+                    </button>
+                    <hr className="my-1 border-slate-100" />
                     {isAdmin && (
                       <>
                         <button
@@ -513,6 +561,85 @@ export default function Layout({ children }) {
           </div>
         </footer>
       </div>
+
+      {/* CHANGE PASSWORD MODAL */}
+      {showPassModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden">
+            <div className="bg-[#1D314F] text-white px-5 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-4 h-4" />
+                <h4 className="font-semibold text-sm">Change Account Password</h4>
+              </div>
+              <button
+                onClick={() => setShowPassModal(false)}
+                className="text-white/75 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handlePasswordChangeSubmit} className="p-5 space-y-3.5 text-xs">
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
+                Signed in as <b className="text-[#1B3664] font-mono">{user?.LoginID}</b>. Your new password will be cryptographically hashed (Salted SHA-256) before saving.
+              </div>
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">
+                  Current Password *
+                </label>
+                <input
+                  type="password"
+                  value={currentPass}
+                  onChange={(e) => setCurrentPass(e.target.value)}
+                  placeholder="Enter your current password"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono focus:border-[#1B3664] focus:outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">
+                  New Strong Password (min 6 chars) *
+                </label>
+                <input
+                  type="password"
+                  value={newPass}
+                  onChange={(e) => setNewPass(e.target.value)}
+                  placeholder="Enter new strong password"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono focus:border-[#1B3664] focus:outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">
+                  Confirm New Password *
+                </label>
+                <input
+                  type="password"
+                  value={confirmPass}
+                  onChange={(e) => setConfirmPass(e.target.value)}
+                  placeholder="Re-enter new password"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono focus:border-[#1B3664] focus:outline-none"
+                  required
+                />
+              </div>
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setShowPassModal(false)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-medium cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-semibold transition cursor-pointer"
+                >
+                  Update &amp; Hash Password
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* SESSION TIMEOUT MODAL */}
       {showTimeoutModal && (

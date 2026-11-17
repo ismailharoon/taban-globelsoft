@@ -9,6 +9,7 @@ import {
   Lock
 } from 'lucide-react';
 import { usePortal, ALL_ADMIN_PERMISSIONS } from '../context/PortalContext';
+import { isPasswordHashed } from '../utils/security';
 import ConfirmActionModal from '../components/ConfirmActionModal';
 
 const PERMISSION_ITEMS = [
@@ -87,7 +88,7 @@ export default function ManageAdmins() {
     setEditingAdmin(adm);
     setForm({
       LoginID: adm.LoginID || '',
-      PassCode: adm.PassCode || '',
+      PassCode: '',
       FullName: adm.FullName || '',
       Email: adm.Email || '',
       Designation: adm.Designation || 'Admin',
@@ -141,8 +142,16 @@ export default function ManageAdmins() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!form.LoginID.trim() || !form.PassCode.trim() || !form.FullName.trim()) {
-      addToast('Please fill in Login ID, Password, and Full Name.', 'error');
+    if (!form.LoginID.trim() || !form.FullName.trim()) {
+      addToast('Please fill in Login ID and Full Name.', 'error');
+      return;
+    }
+    if (!editingAdmin && !form.PassCode.trim()) {
+      addToast('Please enter a password for the new Admin.', 'error');
+      return;
+    }
+    if (form.PassCode && form.PassCode.trim().length > 0 && form.PassCode.trim().length < 6) {
+      addToast('Password must be at least 6 characters long.', 'error');
       return;
     }
     try {
@@ -224,7 +233,16 @@ export default function ManageAdmins() {
                     </td>
                     <td className="py-3 px-3 font-mono">
                       <div className="font-semibold text-[#1B3664]">ID: {adm.LoginID}</div>
-                      <div className="text-[11px] text-slate-500">Pass: {adm.PassCode}</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">
+                        {isPasswordHashed(adm.PassCode) ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-sans text-[10px] font-semibold">
+                            <Lock className="w-2.5 h-2.5" />
+                            SHA-256 Hashed
+                          </span>
+                        ) : (
+                          <span>Pass: {adm.PassCode}</span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-3">
                       <div className="flex flex-wrap gap-1 max-w-md">
@@ -354,14 +372,18 @@ export default function ManageAdmins() {
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-slate-700 mb-1">Password *</label>
+                  <label className="block font-medium text-slate-700 mb-1">
+                    {editingAdmin ? 'New Password (optional — hashed on save)' : 'Password *'}
+                  </label>
                   <input
-                    type="text"
+                    type="password"
                     value={form.PassCode}
                     onChange={(e) => setForm({ ...form, PassCode: e.target.value })}
-                    placeholder="Enter password"
+                    placeholder={
+                      editingAdmin ? 'Leave blank to keep current password' : 'Min 6 characters'
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono focus:border-[#1B3664] focus:outline-none"
-                    required
+                    required={!editingAdmin}
                   />
                 </div>
                 <div>
