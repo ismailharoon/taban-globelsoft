@@ -18,7 +18,8 @@ import {
   UserCheck,
   CheckCircle2,
   AlertTriangle,
-  Info
+  Info,
+  ShieldCheck
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
 import { formatCurrencyPKR } from '../utils/exporters';
@@ -27,22 +28,23 @@ const navSections = [
   {
     group: 'Command Hub',
     items: [
-      { to: '/Dashboard', label: 'Control Center', urdu: 'کنٹرول سینٹر', icon: LayoutDashboard }
+      { to: '/Dashboard', label: 'Control Center', urdu: 'کنٹرول سینٹر', icon: LayoutDashboard, permKey: 'dashboard' }
     ]
   },
   {
     group: 'Ticketing & Inventory',
     items: [
-      { to: '/FlightPOS', label: 'Search Flight', urdu: 'فلائٹ سرچ', icon: ShoppingBag },
-      { to: '/FlightBookings', label: 'Reservations & Tickets', urdu: 'ریزرویشنز اور ٹکٹس', icon: Ticket, badgeKey: 'pending' },
-      { to: '/SegmentManagement', label: 'Routes & Seat Inventory', urdu: 'روٹس اور سیٹ انوینٹری', icon: Layers, adminOnly: true }
+      { to: '/FlightPOS', label: 'Search Flight', urdu: 'فلائٹ سرچ', icon: ShoppingBag, permKey: 'searchFlight' },
+      { to: '/FlightBookings', label: 'Reservations & Tickets', urdu: 'ریزرویشنز اور ٹکٹس', icon: Ticket, badgeKey: 'pending', permKey: 'bookings' },
+      { to: '/SegmentManagement', label: 'Routes & Seat Inventory', urdu: 'روٹس اور سیٹ انوینٹری', icon: Layers, adminOnly: true, permKey: 'segments' }
     ]
   },
   {
     group: 'B2B Partners',
     adminOnly: true,
     items: [
-      { to: '/ManageSubAgents', label: 'Partner Agencies', urdu: 'پارٹنر ایجنسیاں', icon: Users, adminOnly: true }
+      { to: '/ManageSubAgents', label: 'Partner Agencies', urdu: 'پارٹنر ایجنسیاں', icon: Users, adminOnly: true, permKey: 'subAgents' },
+      { to: '/ManageAdmins', label: 'Manage Admins', urdu: 'ایڈمنز منیجمنٹ', icon: ShieldCheck, masterOnly: true }
     ]
   }
 ];
@@ -51,7 +53,9 @@ export default function Layout({ children }) {
   const {
     user,
     isAdmin,
+    isMasterAdmin,
     isSubAgent,
+    hasPermission,
     logout,
     language,
     setLanguage,
@@ -72,15 +76,19 @@ export default function Layout({ children }) {
   const [openDropdown, setOpenDropdown] = useState(null);
 
   const visibleNavSections = React.useMemo(() => {
-    if (!isSubAgent) return navSections;
     return navSections
-      .filter((sec) => !sec.adminOnly)
+      .filter((sec) => !isSubAgent || !sec.adminOnly)
       .map((sec) => ({
         ...sec,
-        items: sec.items.filter((item) => !item.adminOnly)
+        items: sec.items.filter((item) => {
+          if (item.masterOnly) return isMasterAdmin;
+          if (isSubAgent) return !item.adminOnly;
+          if (item.permKey) return hasPermission(item.permKey);
+          return true;
+        })
       }))
       .filter((sec) => sec.items.length > 0);
-  }, [isSubAgent]);
+  }, [isSubAgent, isMasterAdmin, hasPermission]);
 
   const pendingCount = bookings.filter((b) => b.ApprovalStatus === 'Pending').length;
 
@@ -242,9 +250,13 @@ export default function Layout({ children }) {
             <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             {!sidebarCollapsed && <span>Session Guard</span>}
           </button>
-          {isAdmin && (
+          {isMasterAdmin && (
             <button
-              onClick={resetDemoData}
+              onClick={() => {
+                if (window.confirm('Are you sure you want to clear all portal data?')) {
+                  resetDemoData();
+                }
+              }}
               className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5 text-slate-400 shrink-0" />

@@ -9,20 +9,45 @@ import FlightManagement from './pages/FlightManagement';
 import FlightPOS from './pages/FlightPOS';
 import SegmentManagement from './pages/SegmentManagement';
 import ManageSubAgents from './pages/ManageSubAgents';
+import ManageAdmins from './pages/ManageAdmins';
 
-function ProtectedShell({ children, adminOnly = false }) {
-  const { user, isSubAgent } = usePortal();
+function getFirstAllowedAdminRoute(hasPermission, isMasterAdmin) {
+  if (hasPermission('bookings')) return '/FlightBookings';
+  if (hasPermission('searchFlight')) return '/FlightPOS';
+  if (hasPermission('dashboard')) return '/Dashboard';
+  if (hasPermission('segments')) return '/SegmentManagement';
+  if (hasPermission('subAgents')) return '/ManageSubAgents';
+  if (isMasterAdmin) return '/ManageAdmins';
+  return '/login';
+}
+
+function ProtectedShell({ children, adminOnly = false, masterOnly = false, permKey = '' }) {
+  const { user, isSubAgent, isMasterAdmin, hasPermission } = usePortal();
   if (!user) {
     return <Navigate to="/login" replace />;
   }
+  if (masterOnly && !isMasterAdmin) {
+    return (
+      <Navigate
+        to={isSubAgent ? '/FlightPOS' : getFirstAllowedAdminRoute(hasPermission, isMasterAdmin)}
+        replace
+      />
+    );
+  }
   if (adminOnly && isSubAgent) {
     return <Navigate to="/FlightPOS" replace />;
+  }
+  if (!isSubAgent && permKey && !hasPermission(permKey)) {
+    return <Navigate to={getFirstAllowedAdminRoute(hasPermission, isMasterAdmin)} replace />;
   }
   return <Layout>{children}</Layout>;
 }
 
 export default function App() {
-  const { isSubAgent } = usePortal();
+  const { isSubAgent, isMasterAdmin, hasPermission } = usePortal();
+  const defaultRoute = isSubAgent
+    ? '/FlightPOS'
+    : getFirstAllowedAdminRoute(hasPermission, isMasterAdmin);
 
   return (
     <Routes>
@@ -30,7 +55,7 @@ export default function App() {
       <Route
         path="/Dashboard"
         element={
-          <ProtectedShell>
+          <ProtectedShell permKey="dashboard">
             <Dashboard />
           </ProtectedShell>
         }
@@ -38,7 +63,7 @@ export default function App() {
       <Route
         path="/FlightPOS"
         element={
-          <ProtectedShell>
+          <ProtectedShell permKey="searchFlight">
             <FlightPOS />
           </ProtectedShell>
         }
@@ -46,7 +71,7 @@ export default function App() {
       <Route
         path="/FlightBookings"
         element={
-          <ProtectedShell>
+          <ProtectedShell permKey="bookings">
             <FlightBookings />
           </ProtectedShell>
         }
@@ -54,7 +79,7 @@ export default function App() {
       <Route
         path="/FlightManagement"
         element={
-          <ProtectedShell adminOnly>
+          <ProtectedShell adminOnly permKey="segments">
             <FlightManagement />
           </ProtectedShell>
         }
@@ -62,7 +87,7 @@ export default function App() {
       <Route
         path="/SegmentManagement"
         element={
-          <ProtectedShell adminOnly>
+          <ProtectedShell adminOnly permKey="segments">
             <SegmentManagement />
           </ProtectedShell>
         }
@@ -70,19 +95,21 @@ export default function App() {
       <Route
         path="/ManageSubAgents"
         element={
-          <ProtectedShell adminOnly>
+          <ProtectedShell adminOnly permKey="subAgents">
             <ManageSubAgents />
           </ProtectedShell>
         }
       />
       <Route
-        path="/"
-        element={<Navigate to={isSubAgent ? '/FlightPOS' : '/FlightBookings'} replace />}
+        path="/ManageAdmins"
+        element={
+          <ProtectedShell adminOnly masterOnly>
+            <ManageAdmins />
+          </ProtectedShell>
+        }
       />
-      <Route
-        path="*"
-        element={<Navigate to={isSubAgent ? '/FlightPOS' : '/FlightBookings'} replace />}
-      />
+      <Route path="/" element={<Navigate to={defaultRoute} replace />} />
+      <Route path="*" element={<Navigate to={defaultRoute} replace />} />
     </Routes>
   );
 }

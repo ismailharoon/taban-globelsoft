@@ -4,6 +4,29 @@ import { initialSeedData } from '../data/seedData';
 const PortalContext = createContext(null);
 const STORAGE_KEY = 'ota_portal_clean_v1';
 
+export const ALL_ADMIN_PERMISSIONS = {
+  dashboard: true,
+  searchFlight: true,
+  bookings: true,
+  bookingActions: true,
+  segments: true,
+  flights: true,
+  subAgents: true
+};
+
+const DEFAULT_MASTER_ADMIN = {
+  AdminID: 'ADM-MASTER',
+  LoginID: 'test',
+  PassCode: 'test123',
+  FullName: 'Master Admin',
+  Email: 'admin@bookly.com',
+  Designation: 'Master Administrator',
+  Role: 'Master Admin',
+  AccountStatus: 'Enable',
+  Permissions: { ...ALL_ADMIN_PERMISSIONS },
+  Created: 'System Default'
+};
+
 // Purge any old demo storage keys so existing browsers immediately see a fresh state
 try {
   localStorage.removeItem('taban_executive_db_v1');
@@ -386,6 +409,14 @@ function computeEnriched(db) {
     return tx;
   });
 
+  const rawAdmins = Array.isArray(db.adminUsers) ? db.adminUsers : [];
+  const hasMasterInDb = rawAdmins.some(
+    (a) =>
+      a.Role === 'Master Admin' ||
+      (a.LoginID && a.LoginID.toLowerCase() === DEFAULT_MASTER_ADMIN.LoginID.toLowerCase())
+  );
+  const adminUsers = hasMasterInDb ? rawAdmins : [DEFAULT_MASTER_ADMIN, ...rawAdmins];
+
   return {
     stats: {
       TotalSubAgents: (db.subAgents || []).length,
@@ -400,7 +431,8 @@ function computeEnriched(db) {
     flights,
     bookings,
     subAgents: db.subAgents || [],
-    creditTransactions: enrichedTransactions
+    creditTransactions: enrichedTransactions,
+    adminUsers
   };
 }
 
@@ -562,6 +594,34 @@ export function PortalProvider({ children }) {
   const isAdmin = !user || user.SubCompanyID === 'ADMIN';
   const isSubAgent = Boolean(user && user.SubCompanyID && user.SubCompanyID !== 'ADMIN');
 
+  const liveAdminRecord = React.useMemo(() => {
+    if (!isAdmin || !user?.LoginID) return null;
+    return (
+      (enriched.adminUsers || []).find(
+        (a) => a.LoginID && a.LoginID.toLowerCase() === user.LoginID.toLowerCase()
+      ) || null
+    );
+  }, [isAdmin, user, enriched.adminUsers]);
+
+  const isMasterAdmin = Boolean(
+    isAdmin &&
+      user &&
+      (liveAdminRecord?.Role === 'Master Admin' ||
+        user.Role === 'Master Admin' ||
+        user.AccountType === 'Master Admin' ||
+        user.AccountType === 'Administrator')
+  );
+
+  const hasPermission = useCallback(
+    (permKey) => {
+      if (isSubAgent) return false;
+      if (isMasterAdmin) return true;
+      const perms = liveAdminRecord?.Permissions || user?.Permissions || {};
+      return Boolean(perms[permKey]);
+    },
+    [isSubAgent, isMasterAdmin, liveAdminRecord, user]
+  );
+
   const login = async (loginId, password, require2FA = false) => {
     if (!loginId || !password) {
       throw new Error('Please enter both Login ID and Password.');
@@ -571,47 +631,64 @@ export function PortalProvider({ children }) {
     let matchedUser = null;
     let matchedAgent = null;
 
-    for (const agent of dbState.subAgents || []) {
-      for (const u of agent.Users || []) {
-        if (
-          u.LoginID &&
-          u.LoginID.trim().toLowerCase() === cleanLogin &&
-          u.PassCode === password
-        ) {
-          matchedUser = u;
-          matchedAgent = agent;
-          break;
-        }
-      }
-      if (!matchedUser && agent.LoginID && agent.LoginID.trim().toLowerCase() === cleanLogin && agent.PassCode === password) {
+    // 1. Check Admin / Master Admin accounts first
+    for (const adm of enriched.adminUsers || []) {
+      if (
+        adm.LoginID &&
+        adm.LoginID.trim().toLowerCase() === cleanLogin &&
+        adm.PassCode === password
+      ) {
         matchedUser = {
-          UserID: `USR-${agent.SubCompanyID}`,
-          LoginID: agent.LoginID,
-          FullName: agent.CompanyName,
-          Email: agent.Email || '',
-          Designation: 'Sub Agent',
-          AccountType: 'Sub Agent',
-          AccountStatus: agent.AccountStatus || 'Enable'
+          UserID: adm.AdminID || `ADM-${adm.LoginID}`,
+          LoginID: adm.LoginID,
+          FullName: adm.FullName || adm.LoginID,
+          Email: adm.Email || 'admin@bookly.com',
+          Designation: adm.Designation || adm.Role || 'Admin',
+          Role: adm.Role || 'Admin',
+          AccountType: adm.Role === 'Master Admin' ? 'Master Admin' : 'Admin',
+          AccountStatus: adm.AccountStatus || 'Enable',
+          Permissions:
+            adm.Role === 'Master Admin'
+              ? { ...ALL_ADMIN_PERMISSIONS }
+              : { ...(adm.Permissions || {}) }
         };
-        matchedAgent = agent;
+        break;
       }
-      if (matchedUser) break;
     }
 
-    if (
-      !matchedUser &&
-      cleanLogin === 'test' &&
-      password === 'test123'
-    ) {
-      matchedUser = {
-        UserID: 'USR-ADMIN',
-        LoginID: 'test',
-        FullName: 'Test Admin',
-        Email: 'admin@bookly.com',
-        Designation: 'Administrator',
-        AccountType: 'Administrator',
-        AccountStatus: 'Enable'
-      };
+    // 2. Check Sub-Agent accounts
+    if (!matchedUser) {
+      for (const agent of dbState.subAgents || []) {
+        for (const u of agent.Users || []) {
+          if (
+            u.LoginID &&
+            u.LoginID.trim().toLowerCase() === cleanLogin &&
+            u.PassCode === password
+          ) {
+            matchedUser = u;
+            matchedAgent = agent;
+            break;
+          }
+        }
+        if (
+          !matchedUser &&
+          agent.LoginID &&
+          agent.LoginID.trim().toLowerCase() === cleanLogin &&
+          agent.PassCode === password
+        ) {
+          matchedUser = {
+            UserID: `USR-${agent.SubCompanyID}`,
+            LoginID: agent.LoginID,
+            FullName: agent.CompanyName,
+            Email: agent.Email || '',
+            Designation: 'Sub Agent',
+            AccountType: 'Sub Agent',
+            AccountStatus: agent.AccountStatus || 'Enable'
+          };
+          matchedAgent = agent;
+        }
+        if (matchedUser) break;
+      }
     }
 
     if (!matchedUser) {
@@ -627,7 +704,9 @@ export function PortalProvider({ children }) {
       FullName: matchedUser.FullName,
       Email: matchedUser.Email,
       Designation: matchedUser.Designation,
+      Role: matchedAgent ? 'Sub Agent' : matchedUser.Role || matchedUser.AccountType,
       AccountType: matchedAgent ? 'Sub Agent' : matchedUser.AccountType,
+      Permissions: matchedAgent ? null : matchedUser.Permissions || {},
       SubCompanyID: matchedAgent?.SubCompanyID || 'ADMIN',
       SubCompanyName: matchedAgent?.CompanyName || 'Bookly'
     };
@@ -1363,6 +1442,100 @@ export function PortalProvider({ children }) {
     addToast('User Deleted Successfully.', 'info');
   };
 
+  // --- Master Admin -> Admin User Management ---
+  const createAdminUser = async (payload) => {
+    const cleanLogin = String(payload.LoginID || '').trim();
+    if (!cleanLogin || !payload.PassCode || !payload.FullName) {
+      throw new Error('Login ID, Password, and Full Name are required.');
+    }
+    const existsInAdmins = (enriched.adminUsers || []).some(
+      (a) => a.LoginID && a.LoginID.toLowerCase() === cleanLogin.toLowerCase()
+    );
+    const existsInAgents = (dbState.subAgents || []).some(
+      (ag) =>
+        (ag.LoginID && ag.LoginID.toLowerCase() === cleanLogin.toLowerCase()) ||
+        (ag.Users || []).some((u) => u.LoginID && u.LoginID.toLowerCase() === cleanLogin.toLowerCase())
+    );
+    if (existsInAdmins || existsInAgents) {
+      throw new Error(`Login ID "${cleanLogin}" is already in use.`);
+    }
+
+    const newAdmin = {
+      AdminID: `ADM-${Math.floor(1000 + Math.random() * 9000)}`,
+      LoginID: cleanLogin,
+      PassCode: payload.PassCode,
+      FullName: payload.FullName.trim(),
+      Email: payload.Email || '',
+      Designation: payload.Designation || 'Operations Admin',
+      Role: payload.Role === 'Master Admin' ? 'Master Admin' : 'Admin',
+      AccountStatus: payload.AccountStatus || 'Enable',
+      Permissions:
+        payload.Role === 'Master Admin'
+          ? { ...ALL_ADMIN_PERMISSIONS }
+          : { ...(payload.Permissions || {}) },
+      Created: new Date().toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      })
+    };
+
+    updateLocalDb((draft) => {
+      const currentList = Array.isArray(draft.adminUsers) ? draft.adminUsers : [];
+      const hasMaster = currentList.some(
+        (a) =>
+          a.Role === 'Master Admin' ||
+          (a.LoginID && a.LoginID.toLowerCase() === DEFAULT_MASTER_ADMIN.LoginID.toLowerCase())
+      );
+      draft.adminUsers = hasMaster
+        ? [...currentList, newAdmin]
+        : [DEFAULT_MASTER_ADMIN, ...currentList, newAdmin];
+      return draft;
+    });
+    addToast(`Admin "${newAdmin.FullName}" created successfully.`, 'success');
+  };
+
+  const updateAdminUser = async (adminId, payload) => {
+    updateLocalDb((draft) => {
+      const currentList = Array.isArray(draft.adminUsers) ? draft.adminUsers : [];
+      const hasMaster = currentList.some(
+        (a) =>
+          a.Role === 'Master Admin' ||
+          (a.LoginID && a.LoginID.toLowerCase() === DEFAULT_MASTER_ADMIN.LoginID.toLowerCase())
+      );
+      const list = hasMaster ? [...currentList] : [DEFAULT_MASTER_ADMIN, ...currentList];
+      const idx = list.findIndex((a) => a.AdminID === adminId);
+      if (idx !== -1) {
+        const existing = list[idx];
+        const isMaster = existing.Role === 'Master Admin';
+        list[idx] = {
+          ...existing,
+          ...payload,
+          Role: isMaster ? 'Master Admin' : payload.Role || existing.Role || 'Admin',
+          AccountStatus: isMaster ? 'Enable' : payload.AccountStatus || existing.AccountStatus,
+          Permissions: isMaster
+            ? { ...ALL_ADMIN_PERMISSIONS }
+            : { ...(payload.Permissions || existing.Permissions || {}) }
+        };
+      }
+      draft.adminUsers = list;
+      return draft;
+    });
+    addToast('Admin account updated successfully.', 'success');
+  };
+
+  const deleteAdminUser = async (adminId) => {
+    const target = (enriched.adminUsers || []).find((a) => a.AdminID === adminId);
+    if (target?.Role === 'Master Admin') {
+      throw new Error('Master Admin account cannot be deleted.');
+    }
+    updateLocalDb((draft) => {
+      draft.adminUsers = (draft.adminUsers || []).filter((a) => a.AdminID !== adminId);
+      return draft;
+    });
+    addToast('Admin account deleted successfully.', 'info');
+  };
+
   // Role-based filtering: Sub Agents ONLY see their own bookings & agency
   const visibleBookings = React.useMemo(() => {
     if (!isSubAgent) return enriched.bookings;
@@ -1402,7 +1575,10 @@ export function PortalProvider({ children }) {
       value={{
         user,
         isAdmin,
+        isMasterAdmin,
         isSubAgent,
+        hasPermission,
+        adminUsers: enriched.adminUsers,
         loading,
         language,
         setLanguage,
@@ -1445,7 +1621,10 @@ export function PortalProvider({ children }) {
         deleteSubAgent,
         createSubAgentUser,
         updateSubAgentUser,
-        deleteSubAgentUser
+        deleteSubAgentUser,
+        createAdminUser,
+        updateAdminUser,
+        deleteAdminUser
       }}
     >
       {children}

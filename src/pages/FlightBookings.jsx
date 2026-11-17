@@ -35,6 +35,7 @@ const STATUS_TABS = [
 export default function FlightBookings() {
   const {
     isSubAgent,
+    hasPermission,
     bookings,
     subAgents,
     approveBooking,
@@ -318,10 +319,12 @@ export default function FlightBookings() {
                 filteredBookings.map((booking) => {
                   const isExpanded = Boolean(expandedRows[booking.AirGroupBookingID]);
                   const isIssued = booking.ApprovalStatus === 'Ticket Issued';
-                  const canApprove = !isSubAgent && booking.ApprovalStatus === 'Pending';
-                  const canReject = !isSubAgent && booking.ApprovalStatus === 'Pending';
+                  const canManageBookings = !isSubAgent && hasPermission('bookingActions');
+                  const canApprove = canManageBookings && booking.ApprovalStatus === 'Pending';
+                  const canReject = canManageBookings && booking.ApprovalStatus === 'Pending';
                   const canIssue =
-                    booking.ApprovalStatus === 'Approved' || booking.ApprovalStatus === 'Pending';
+                    (isSubAgent || canManageBookings) &&
+                    (booking.ApprovalStatus === 'Approved' || booking.ApprovalStatus === 'Pending');
                   const canCancel =
                     isSubAgent &&
                     !isIssued &&
@@ -329,7 +332,7 @@ export default function FlightBookings() {
                     booking.ApprovalStatus !== 'Rejected' &&
                     booking.ApprovalStatus !== 'Ticket Void';
                   const canVoid =
-                    !isSubAgent &&
+                    canManageBookings &&
                     (booking.ApprovalStatus === 'Ticket Issued' ||
                       booking.ApprovalStatus === 'Approved');
                   const bookingAgent =
@@ -556,7 +559,7 @@ export default function FlightBookings() {
                               {isIssued ? 'Print Ticket' : 'Print Details'}
                             </button>
 
-                            {!isSubAgent && (
+                            {canManageBookings && (
                               <button
                                 onClick={() => setEditingBooking({ ...booking })}
                                 className="p-1.5 rounded-lg border border-slate-200 hover:border-[#1B3664] text-slate-600 hover:text-[#1B3664] transition cursor-pointer"
@@ -566,7 +569,7 @@ export default function FlightBookings() {
                               </button>
                             )}
 
-                            {!isSubAgent && (
+                            {canManageBookings && (
                               <button
                                 onClick={() =>
                                   askConfirm({
@@ -650,7 +653,7 @@ export default function FlightBookings() {
                                     <User className="w-3.5 h-3.5" />
                                     Passenger Information ({(booking.Passengers || []).length})
                                   </h5>
-                                  {!isSubAgent && (
+                                  {canManageBookings && (
                                     <span className="text-[11px] text-slate-500">
                                       Click Edit Pax to update passenger details
                                     </span>
@@ -670,7 +673,7 @@ export default function FlightBookings() {
                                         <th className="py-2 px-3">Passport #</th>
                                         <th className="py-2 px-3">Passport Issue / Expiry</th>
                                         <th className="py-2 px-3">Ticket #</th>
-                                        {!isSubAgent && <th className="py-2 px-3 text-right">Actions</th>}
+                                        {canManageBookings && <th className="py-2 px-3 text-right">Actions</th>}
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
@@ -701,7 +704,7 @@ export default function FlightBookings() {
                                           <td className="py-2 px-3 font-mono font-semibold text-[#1B3664]">
                                             {pax.TicketNumber || 'Not Issued'}
                                           </td>
-                                          {!isSubAgent && (
+                                          {canManageBookings && (
                                             <td className="py-2 px-3 text-right">
                                               <div className="flex items-center justify-end gap-1.5">
                                                 <button
