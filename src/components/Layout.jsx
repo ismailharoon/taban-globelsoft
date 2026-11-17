@@ -273,13 +273,15 @@ export default function Layout({ children }) {
 
         {/* Bottom Actions */}
         <div className="p-2.5 border-t border-slate-800 bg-[#0B1221] space-y-1">
-          <button
-            onClick={() => setShowPassModal(true)}
-            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-          >
-            <KeyRound className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            {!sidebarCollapsed && <span>Change Password</span>}
-          </button>
+          {isMasterAdmin && (
+            <button
+              onClick={() => setShowPassModal(true)}
+              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              {!sidebarCollapsed && <span>Change Password</span>}
+            </button>
+          )}
           <button
             onClick={() => setShowTimeoutModal(true)}
             className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
@@ -505,17 +507,21 @@ export default function Layout({ children }) {
                     <div className="text-[11px] text-white/75">{user?.Email || 'admin@bookly.com'}</div>
                   </div>
                   <div className="p-1.5">
-                    <button
-                      onClick={() => {
-                        setOpenDropdown(null);
-                        setShowPassModal(true);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-50 text-left cursor-pointer"
-                    >
-                      <KeyRound className="w-3.5 h-3.5 text-[#1B3664]" />
-                      <span>Change Password</span>
-                    </button>
-                    <hr className="my-1 border-slate-100" />
+                    {isMasterAdmin && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setOpenDropdown(null);
+                            setShowPassModal(true);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-slate-50 text-left cursor-pointer"
+                        >
+                          <KeyRound className="w-3.5 h-3.5 text-[#1B3664]" />
+                          <span>Change Password</span>
+                        </button>
+                        <hr className="my-1 border-slate-100" />
+                      </>
+                    )}
                     {isAdmin && (
                       <>
                         <button
