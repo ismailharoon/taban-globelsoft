@@ -7,6 +7,36 @@ export function isPasswordHashed(val) {
   return typeof val === 'string' && /^sha256\$[0-9a-f]+\$[0-9a-f]{64}$/i.test(val);
 }
 
+/**
+ * Validates strong password requirement:
+ * - At least 8 characters
+ * - At least 1 letter (A-Z or a-z)
+ * - At least 1 number (0-9)
+ * - At least 1 special character (e.g. @ # $ ! % ^ & * _ - .)
+ */
+export function validateStrongPassword(pwd) {
+  const s = String(pwd ?? '').trim();
+  if (s.length < 8) {
+    return {
+      valid: false,
+      error: 'Password must be at least 8 characters long (e.g. Pass@1234).'
+    };
+  }
+  if (!/[A-Za-z]/.test(s) || !/[0-9]/.test(s)) {
+    return {
+      valid: false,
+      error: 'Password must be alphanumeric (contain both letters and numbers).'
+    };
+  }
+  if (!/[^A-Za-z0-9\s]/.test(s)) {
+    return {
+      valid: false,
+      error: 'Password must include at least 1 special character (e.g. @, #, $, !).'
+    };
+  }
+  return { valid: true, error: '' };
+}
+
 function generateHexSalt(byteLen = 8) {
   const bytes = new Uint8Array(byteLen);
   if (typeof window !== 'undefined' && window.crypto?.getRandomValues) {

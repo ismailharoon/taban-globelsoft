@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { initialSeedData } from '../data/seedData';
-import { hashPassword, verifyPassword, isPasswordHashed } from '../utils/security';
+import {
+  hashPassword,
+  verifyPassword,
+  isPasswordHashed,
+  validateStrongPassword
+} from '../utils/security';
 
 const PortalContext = createContext(null);
 const STORAGE_KEY = 'ota_portal_clean_v1';
@@ -1251,8 +1256,13 @@ export function PortalProvider({ children }) {
   // --- SubAgent & User mutations ---
   const createSubAgent = async (p) => {
     if (!p.CompanyName) throw new Error('Company Name is required.');
+    const rawPass = p.PassCode ? String(p.PassCode).trim() : 'Pass@1234';
+    if (!isPasswordHashed(rawPass)) {
+      const check = validateStrongPassword(rawPass);
+      if (!check.valid) throw new Error(check.error);
+    }
     const subCompanyId = `SUB-${Math.floor(205 + Math.random() * 800)}`;
-    const hashedPass = await hashPassword(p.PassCode || 'Pass@123');
+    const hashedPass = await hashPassword(rawPass);
     const initialUsers = [];
     if (p.LoginID && String(p.LoginID).trim()) {
       initialUsers.push({
@@ -1292,23 +1302,29 @@ export function PortalProvider({ children }) {
   };
 
   const updateSubAgent = async (id, payload) => {
+    const nextPayload = { ...payload };
+    if (nextPayload.PassCode && String(nextPayload.PassCode).trim() && !isPasswordHashed(nextPayload.PassCode)) {
+      const check = validateStrongPassword(nextPayload.PassCode);
+      if (!check.valid) throw new Error(check.error);
+      nextPayload.PassCode = await hashPassword(String(nextPayload.PassCode).trim());
+    }
     updateLocalDb((draft) => {
       const idx = draft.subAgents.findIndex((a) => a.SubCompanyID === id);
       if (idx !== -1) {
         const existing = draft.subAgents[idx];
         const nextLimit =
-          payload.CreditLimit !== undefined
-            ? Number(payload.CreditLimit) || 0
+          nextPayload.CreditLimit !== undefined
+            ? Number(nextPayload.CreditLimit) || 0
             : Number(existing.CreditLimit) || 0;
         let nextBalance =
-          payload.CreditLimitBalance !== undefined
-            ? Number(payload.CreditLimitBalance) || 0
+          nextPayload.CreditLimitBalance !== undefined
+            ? Number(nextPayload.CreditLimitBalance) || 0
             : Number(existing.CreditLimitBalance) || 0;
 
         // If CreditLimit was changed without an explicit CreditLimitBalance override, adjust balance by delta
         if (
-          payload.CreditLimit !== undefined &&
-          payload.CreditLimitBalance === undefined &&
+          nextPayload.CreditLimit !== undefined &&
+          nextPayload.CreditLimitBalance === undefined &&
           nextLimit !== Number(existing.CreditLimit)
         ) {
           const delta = nextLimit - (Number(existing.CreditLimit) || 0);
@@ -1318,7 +1334,7 @@ export function PortalProvider({ children }) {
         const prevBal = Number(existing.CreditLimitBalance) || 0;
         draft.subAgents[idx] = {
           ...existing,
-          ...payload,
+          ...nextPayload,
           CreditLimit: nextLimit,
           CreditLimitBalance: nextBalance
         };
@@ -1396,7 +1412,12 @@ export function PortalProvider({ children }) {
     if (!u.LoginID || !u.FullName || !u.Email) {
       throw new Error('Login ID, Full Name, and Email are required.');
     }
-    const hashedPass = await hashPassword(u.PassCode || 'Pass@123');
+    const rawPass = u.PassCode ? String(u.PassCode).trim() : 'Pass@1234';
+    if (!isPasswordHashed(rawPass)) {
+      const check = validateStrongPassword(rawPass);
+      if (!check.valid) throw new Error(check.error);
+    }
+    const hashedPass = await hashPassword(rawPass);
     const newUser = {
       UserID: `USR-${Math.floor(100 + Math.random() * 9000)}`,
       SubCompanyID: subCompanyId,
@@ -1424,6 +1445,8 @@ export function PortalProvider({ children }) {
   const updateSubAgentUser = async (subCompanyId, userId, payload) => {
     const nextPayload = { ...payload };
     if (nextPayload.PassCode && !isPasswordHashed(nextPayload.PassCode)) {
+      const check = validateStrongPassword(nextPayload.PassCode);
+      if (!check.valid) throw new Error(check.error);
       nextPayload.PassCode = await hashPassword(nextPayload.PassCode);
     }
     updateLocalDb((draft) => {
@@ -1468,6 +1491,10 @@ export function PortalProvider({ children }) {
       throw new Error(`Login ID "${cleanLogin}" is already in use.`);
     }
 
+    const passCheck = validateStrongPassword(payload.PassCode);
+    if (!passCheck.valid) {
+      throw new Error(passCheck.error);
+    }
     const hashedPass = await hashPassword(payload.PassCode);
     const newAdmin = {
       AdminID: `ADM-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -1507,6 +1534,10 @@ export function PortalProvider({ children }) {
   const updateAdminUser = async (adminId, payload) => {
     const nextPayload = { ...payload };
     if (nextPayload.PassCode && String(nextPayload.PassCode).trim()) {
+      const passCheck = validateStrongPassword(nextPayload.PassCode);
+      if (!passCheck.valid) {
+        throw new Error(passCheck.error);
+      }
       nextPayload.PassCode = await hashPassword(String(nextPayload.PassCode).trim());
     } else {
       delete nextPayload.PassCode;
@@ -1547,8 +1578,9 @@ export function PortalProvider({ children }) {
       throw new Error('Please enter both current and new password.');
     }
     const cleanNew = String(newPassword).trim();
-    if (cleanNew.length < 6) {
-      throw new Error('New password must be at least 6 characters long.');
+    const passCheck = validateStrongPassword(cleanNew);
+    if (!passCheck.valid) {
+      throw new Error(passCheck.error);
     }
 
     const cleanLogin = user.LoginID.toLowerCase();

@@ -9,7 +9,7 @@ import {
   Lock
 } from 'lucide-react';
 import { usePortal, ALL_ADMIN_PERMISSIONS } from '../context/PortalContext';
-import { isPasswordHashed } from '../utils/security';
+import { isPasswordHashed, validateStrongPassword } from '../utils/security';
 import ConfirmActionModal from '../components/ConfirmActionModal';
 
 const PERMISSION_ITEMS = [
@@ -150,9 +150,12 @@ export default function ManageAdmins() {
       addToast('Please enter a password for the new Admin.', 'error');
       return;
     }
-    if (form.PassCode && form.PassCode.trim().length > 0 && form.PassCode.trim().length < 6) {
-      addToast('Password must be at least 6 characters long.', 'error');
-      return;
+    if (form.PassCode && form.PassCode.trim().length > 0) {
+      const passCheck = validateStrongPassword(form.PassCode);
+      if (!passCheck.valid) {
+        addToast(passCheck.error, 'error');
+        return;
+      }
     }
     try {
       if (editingAdmin) {
@@ -380,7 +383,9 @@ export default function ManageAdmins() {
                     value={form.PassCode}
                     onChange={(e) => setForm({ ...form, PassCode: e.target.value })}
                     placeholder={
-                      editingAdmin ? 'Leave blank to keep current password' : 'Min 6 characters'
+                      editingAdmin
+                        ? 'Leave blank to keep current password'
+                        : '8+ chars, letters+numbers+special (e.g. Pass@1234)'
                     }
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono focus:border-[#1B3664] focus:outline-none"
                     required={!editingAdmin}

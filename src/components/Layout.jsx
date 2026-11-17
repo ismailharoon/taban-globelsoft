@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
 import { formatCurrencyPKR } from '../utils/exporters';
+import { validateStrongPassword } from '../utils/security';
 
 const navSections = [
   {
@@ -86,8 +87,9 @@ export default function Layout({ children }) {
 
   const handlePasswordChangeSubmit = async (e) => {
     e.preventDefault();
-    if (newPass.trim().length < 6) {
-      addToast('New password must be at least 6 characters long.', 'error');
+    const passCheck = validateStrongPassword(newPass);
+    if (!passCheck.valid) {
+      addToast(passCheck.error, 'error');
       return;
     }
     if (newPass !== confirmPass) {
@@ -603,13 +605,13 @@ export default function Layout({ children }) {
               </div>
               <div>
                 <label className="block font-medium text-slate-700 mb-1">
-                  New Strong Password (min 6 chars) *
+                  New Strong Password (8+ chars, alphanumeric + 1 special char) *
                 </label>
                 <input
                   type="password"
                   value={newPass}
                   onChange={(e) => setNewPass(e.target.value)}
-                  placeholder="Enter new strong password"
+                  placeholder="e.g. Pass@1234"
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono focus:border-[#1B3664] focus:outline-none"
                   required
                 />
