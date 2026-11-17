@@ -28,10 +28,13 @@ export default function Login() {
   const [otpAuthUri, setOtpAuthUri] = useState('');
   const [totpSecret, setTotpSecret] = useState('');
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg('');
     if (!loginId.trim() || !password) {
+      setErrorMsg('Please enter both Login ID and Password.');
       addToast('Please enter both Login ID and Password.', 'error');
       return;
     }
@@ -45,11 +48,13 @@ export default function Login() {
         setOtpAuthUri(res.otpAuthUri || '');
         setTotpSecret(res.secret || '');
         setOtpCode('');
+        setErrorMsg('');
         setStep('otp');
       } else {
         navigate('/');
       }
     } catch (err) {
+      setErrorMsg(err.message);
       addToast(err.message, 'error');
     } finally {
       setSubmitting(false);
@@ -58,11 +63,13 @@ export default function Login() {
 
   const handleOtpSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg('');
     setSubmitting(true);
     try {
       await verifyOtpAndFinishLogin(pendingUser, otpCode, totpSecret);
       navigate('/');
     } catch (err) {
+      setErrorMsg(err.message);
       addToast(err.message, 'error');
     } finally {
       setSubmitting(false);
@@ -120,6 +127,12 @@ export default function Login() {
               </p>
             </div>
           </div>
+
+          {errorMsg && (
+            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
+              {errorMsg}
+            </div>
+          )}
 
           {step === 'credentials' ? (
             <form onSubmit={handleLoginSubmit} className="space-y-4">

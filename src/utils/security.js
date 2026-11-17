@@ -259,14 +259,47 @@ export async function generateTotpCodeAtStep(secretBase32, timeStep) {
   return String(binary % 1000000).padStart(6, '0');
 }
 
-export async function verifyTotpToken(secretBase32, token, windowSteps = 1) {
+async function getRealUtcTimeMs() {
+  if (typeof window === 'undefined' || typeof fetch === 'undefined') {
+    return Date.now();
+  }
+  try {
+    const res = await fetch(`${window.location.origin}/?t=${Date.now()}`, {
+      method: 'HEAD',
+      cache: 'no-store'
+    });
+    const dateHdr = res.headers.get('date');
+    if (dateHdr) {
+      const parsed = Date.parse(dateHdr);
+      if (!isNaN(parsed)) return parsed;
+    }
+  } catch {
+    // Fallback to local clock if offline
+  }
+  return Date.now();
+}
+
+export async function verifyTotpToken(secretBase32, token, windowSteps = 2) {
   const cleanToken = String(token || '').replace(/\s+/g, '');
   if (!/^\d{6}$/.test(cleanToken) || !secretBase32) return false;
-  const currentStep = Math.floor(Date.now() / 1000 / 30);
+
+  // 1. Check against real server UTC time (handles PCs whose local date/year is out of sync with mobile phone)
+  const serverMs = await getRealUtcTimeMs();
+  const serverStep = Math.floor(serverMs / 1000 / 30);
   for (let w = -windowSteps; w <= windowSteps; w++) {
-    const expected = await generateTotpCodeAtStep(secretBase32, currentStep + w);
+    const expected = await generateTotpCodeAtStep(secretBase32, serverStep + w);
     if (expected === cleanToken) return true;
   }
+
+  // 2. Also check against local device clock
+  const localStep = Math.floor(Date.now() / 1000 / 30);
+  if (localStep !== serverStep) {
+    for (let w = -windowSteps; w <= windowSteps; w++) {
+      const expected = await generateTotpCodeAtStep(secretBase32, localStep + w);
+      if (expected === cleanToken) return true;
+    }
+  }
+
   return false;
 }
 
