@@ -184,7 +184,7 @@ export default function Layout({ children }) {
             {!sidebarCollapsed ? (
               <div className="leading-tight">
                 <div className="font-display font-semibold text-sm tracking-wide text-white flex items-center gap-1.5">
-                  BOOKLY <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#1B3664] text-white font-mono">OTA</span>
+                  BOOKLY
                 </div>
                 <p className="text-[10px] text-slate-400 truncate">B2B Booking &amp; Inventory</p>
               </div>
@@ -282,26 +282,6 @@ export default function Layout({ children }) {
             >
               <KeyRound className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               {!sidebarCollapsed && <span>Change Password</span>}
-            </button>
-          )}
-          <button
-            onClick={() => setShowTimeoutModal(true)}
-            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-          >
-            <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            {!sidebarCollapsed && <span>Session Guard</span>}
-          </button>
-          {isMasterAdmin && (
-            <button
-              onClick={() => {
-                if (window.confirm('Are you sure you want to clear all portal data?')) {
-                  resetDemoData();
-                }
-              }}
-              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              {!sidebarCollapsed && <span>Clear All Data</span>}
             </button>
           )}
           <button
@@ -563,9 +543,8 @@ export default function Layout({ children }) {
               <b className="text-[#1B3664]">BOOKLY</b> • B2B Booking &amp; Inventory System
             </span>
           </div>
-          <div className="flex items-center gap-3 mt-1 sm:mt-0 text-[11px]">
-            <span className="w-2 h-2 rounded-full bg-[#1B3664]" />
-            <span>B2B Aviation Portal</span>
+          <div className="flex items-center gap-2 mt-1 sm:mt-0 text-[11px] text-slate-400">
+            <span>&copy; {new Date().getFullYear()} KynexaSoft. All rights reserved.</span>
           </div>
         </footer>
       </div>

@@ -581,11 +581,9 @@ export default function SegmentManagement() {
               ) : (
                 segments.map((seg) => {
                   const adtBag = seg.BaggageADT ?? seg.BaggageCountADT ?? '20';
-                  const cnnBag = seg.BaggageCNN ?? seg.BaggageCountCNN ?? '20';
-                  const infBag = seg.BaggageINF ?? seg.BaggageCountINF ?? '0';
                   return (
                     <tr key={seg.AirGroupSegmentID} className="hover:bg-slate-50 transition">
-                      <td className="py-3 px-3">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         <div className="font-mono font-semibold text-sm text-[#1B3664]">
                           {seg.FlightNumber}
                         </div>
@@ -593,112 +591,103 @@ export default function SegmentManagement() {
                           {seg.OperatingAirlineName || seg.OperatingAirline || '-'}
                         </div>
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-3.5 px-3 whitespace-nowrap">
                         <div className="font-medium text-slate-800">
                           {seg.DepartureCity} ({seg.DepartureIata})
                         </div>
-                        <div className="text-[11px] text-slate-500 max-w-[170px] truncate">
+                        <div className="text-[11px] text-slate-500 max-w-[160px] truncate">
                           {seg.DepartureAirport}
                         </div>
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-3.5 px-3 whitespace-nowrap">
                         <div className="font-medium text-slate-800">
                           {seg.ArrivalCity} ({seg.ArrivalIata})
                         </div>
-                        <div className="text-[11px] text-slate-500 max-w-[170px] truncate">
+                        <div className="text-[11px] text-slate-500 max-w-[160px] truncate">
                           {seg.ArrivalAirport}
                         </div>
                       </td>
-                      <td className="py-3 px-3 font-mono">
+                      <td className="py-3.5 px-3 font-mono whitespace-nowrap">
                         <div className="font-medium text-slate-800">
                           {formatDateTime(seg.DepartureDate)}
                         </div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-[11px] text-slate-500 mt-0.5">
                           Arr: {formatDateTime(seg.ArrivalDate)}
                         </div>
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-3.5 px-3 whitespace-nowrap">
                         <div className="font-medium text-slate-800">
-                          {seg.FlightClass} ({seg.FlightClassCode || 'Y'}) • {seg.AirCraft || 'A320'}
-                        </div>
-                        <div className="text-[11px] text-[#1B3664]">
-                          ADT={adtBag}, CNN={cnnBag}, INF={infBag}
+                          {seg.FlightClass} ({seg.FlightClassCode || 'Y'}) • {adtBag} KG
                         </div>
                         <div className="mt-1">
                           {Number(seg.PnrExpiryHours) > 0 ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-semibold">
-                              <Clock className="w-2.5 h-2.5" />
-                              Agent PNR Expiry: {seg.PnrExpiryHours}h
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-medium">
+                              <Clock className="w-2.5 h-2.5 text-slate-500" />
+                              PNR Expiry: {seg.PnrExpiryHours}h
                             </span>
                           ) : (
                             <span className="text-[10px] text-slate-400">No PNR Expiry</span>
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-3 text-center font-mono">
+                      <td className="py-3.5 px-3 text-center font-mono whitespace-nowrap">
                         <div>
-                          <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
+                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-900 font-semibold border border-slate-200">
                             {seg.SeatsLeft ?? seg.TotalSeats}
                           </span>{' '}
-                          / <span className="text-slate-600">{seg.TotalSeats}</span>
+                          <span className="text-slate-400">/</span>{' '}
+                          <span className="text-slate-600">{seg.TotalSeats}</span>
                         </div>
                         {seg.HasTiers && (
                           <div className="mt-1 text-[10px] font-sans text-slate-500">
-                            <span className="inline-block px-1.5 py-0.5 rounded bg-[#1B3664]/10 text-[#1B3664] font-semibold">
-                              Active: Slab {seg.ActiveTier} ({seg.ActiveTierSeatsLeft} left)
-                            </span>
-                            <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                              Slabs: {seg.Tier1Seats || 0}/{seg.Tier2Seats || 0}/{seg.Tier3Seats || 0}/{seg.Tier4Seats || 0}/{seg.Tier5Seats || 0}
-                            </div>
+                            Slab {seg.ActiveTier} ({seg.ActiveTierSeatsLeft} left)
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-3 font-mono text-[11px]">
-                        <div className="font-semibold text-[#1B3664]">
+                      <td className="py-3.5 px-3 font-mono text-xs whitespace-nowrap">
+                        <div className="font-semibold text-slate-900">
                           1-Way: {formatCurrencyPKR(seg.AdultPrice)}
                         </div>
-                        <div className="font-semibold text-emerald-700">
-                          Return: {formatCurrencyPKR(Number(seg.ReturnAdultPrice) > 0 ? seg.ReturnAdultPrice : seg.AdultPrice)}
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          Return:{' '}
+                          {formatCurrencyPKR(
+                            Number(seg.ReturnAdultPrice) > 0 ? seg.ReturnAdultPrice : seg.AdultPrice
+                          )}
                         </div>
-                        {seg.HasTiers && (
-                          <div className="text-[10px] text-slate-500 mt-0.5 leading-snug">
-                            S1: {formatCurrencyPKR(seg.Tier1AdultPrice)} | S2: {formatCurrencyPKR(seg.Tier2AdultPrice)} | S3: {formatCurrencyPKR(seg.Tier3AdultPrice)} | S4: {formatCurrencyPKR(seg.Tier4AdultPrice ?? seg.Tier3AdultPrice)} | S5: {formatCurrencyPKR(seg.Tier5AdultPrice ?? seg.Tier3AdultPrice)}
-                          </div>
-                        )}
                       </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center justify-end gap-1.5">
                           <button
                             onClick={() =>
                               downloadExcelManifest(seg, getPassengersForSegment(seg))
                             }
-                            className="px-2 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-[11px] inline-flex items-center gap-1 transition cursor-pointer"
                             title="Download Excel Manifest (.xlsx)"
                           >
-                            <FileSpreadsheet className="w-3.5 h-3.5" />
+                            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
                             <span>Excel</span>
                           </button>
                           <button
                             onClick={() =>
                               downloadWordManifest(seg, getPassengersForSegment(seg))
                             }
-                            className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-950 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-[11px] inline-flex items-center gap-1 transition cursor-pointer"
                             title="Download Word IATA Manifest (.docx)"
                           >
-                            <FileText className="w-3.5 h-3.5" />
+                            <FileText className="w-3.5 h-3.5 text-[#1B3664]" />
                             <span>Word</span>
                           </button>
                           <button
                             onClick={() => setSlabReportSegment(seg)}
-                            className="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-[11px] inline-flex items-center gap-1 transition cursor-pointer"
                             title="Sector Slab Report"
                           >
-                            <BarChart3 className="w-3.5 h-3.5" />
+                            <BarChart3 className="w-3.5 h-3.5 text-amber-600" />
                             <span>Slab Report</span>
                           </button>
                           <button
                             onClick={() => setDetailsSegment(seg)}
-                            className="px-2.5 py-1.5 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-medium text-[11px] inline-flex items-center gap-1 transition cursor-pointer"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>Details</span>

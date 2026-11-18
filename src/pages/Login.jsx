@@ -7,7 +7,8 @@ import {
   EyeOff,
   QrCode,
   KeyRound,
-  ArrowRight
+  ArrowRight,
+  Plane
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
 
@@ -77,104 +78,109 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-12 bg-[#F8FAFC]">
-      {/* Left Hero Panel - Taban Air Royal Navy */}
-      <div className="hidden lg:flex lg:col-span-7 bg-gradient-to-br from-[#0B1528] via-[#15284B] to-[#1D314F] text-white p-10 flex-col justify-between relative overflow-hidden">
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-3 px-3.5 py-2 rounded-xl bg-white/10 border border-white/15">
-            <span className="font-display font-semibold text-xs tracking-wider uppercase">
-              BOOKLY • B2B AVIATION PORTAL
-            </span>
-          </div>
+    <div className="min-h-screen grid lg:grid-cols-12 bg-slate-50">
+      {/* Left Brand Panel */}
+      <div className="hidden lg:flex lg:col-span-6 bg-[#0F172A] text-white p-12 flex-col justify-between relative overflow-hidden">
+        {/* Subtle Aviation Background Photo */}
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-20"
+          style={{
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1600&q=80')"
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/80 to-transparent" />
 
-          <h1 className="font-display font-semibold text-3xl xl:text-4xl leading-snug mt-8 max-w-lg">
-            Group Charter, POS Search &amp; Sub-Agent Ticketing.
-          </h1>
-          <p className="text-white/75 text-sm mt-4 max-w-md leading-relaxed">
-            Search flight segments directly in POS, issue instant e-tickets with official itinerary receipts, and export IATA PNL &amp; Excel passenger manifests.
-          </p>
-
-          <div className="grid grid-cols-3 gap-3.5 mt-8 max-w-lg">
-            <div className="p-3.5 rounded-xl bg-white/5 border border-white/10">
-              <div className="text-lg font-semibold font-display text-white">Direct POS</div>
-              <div className="text-[11px] text-white/70 mt-0.5">Search & book directly from flight segments</div>
-            </div>
-            <div className="p-3.5 rounded-xl bg-white/5 border border-white/10">
-              <div className="text-lg font-semibold font-display text-white">IATA PNL</div>
-              <div className="text-[11px] text-white/70 mt-0.5">1-Click Excel, Word & PDF E-Ticket exports</div>
-            </div>
-            <div className="p-3.5 rounded-xl bg-white/5 border border-white/10">
-              <div className="text-lg font-semibold font-display text-white">Cloud Sync</div>
-              <div className="text-[11px] text-white/70 mt-0.5">Real-time shared database across all agents</div>
-            </div>
+        <div className="relative z-10 flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center">
+            <Plane className="w-4 h-4 text-white" />
           </div>
+          <span className="font-display font-bold text-lg tracking-wide">BOOKLY</span>
         </div>
 
-        <div className="relative z-10 flex items-center justify-between text-xs text-white/60 border-t border-white/10 pt-5">
-          <span>Bookly • B2B Portal</span>
-          <span className="font-mono">B2B Aviation System</span>
+        <div className="relative z-10 max-w-md my-auto">
+          <h1 className="font-display font-semibold text-4xl leading-tight">
+            Airline Inventory &amp; Partner Ticketing Portal
+          </h1>
+          <p className="text-slate-300 text-base mt-4 leading-relaxed">
+            Centralized seat allocation, real-time partner agency reservations, automated e-ticketing, and live account statements.
+          </p>
+        </div>
+
+        <div className="relative z-10 flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-5">
+          <span>&copy; {new Date().getFullYear()} KynexaSoft. All rights reserved.</span>
+          <span>kynexasoft.com</span>
         </div>
       </div>
 
-      {/* Right Login Card */}
-      <div className="lg:col-span-5 flex items-center justify-center p-6 sm:p-10 bg-white">
-        <div className="w-full max-w-sm">
-          <div className="flex items-center gap-3 mb-6">
-            <div>
-              <h2 className="font-display font-semibold text-xl text-slate-900">Bookly Sign In</h2>
-              <p className="text-xs text-slate-500">
-                B2B Booking &amp; Inventory System
-              </p>
-            </div>
+      {/* Right Sign-In Panel with Subtle Airplane Backdrop */}
+      <div className="lg:col-span-6 flex flex-col justify-between p-6 sm:p-12 relative overflow-hidden bg-white">
+        {/* Subtle Right-Side Aviation Backdrop */}
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-[0.07] pointer-events-none"
+          style={{
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1540339832862-474599807836?auto=format&fit=crop&w=1400&q=80')"
+          }}
+        />
+
+        <div className="hidden lg:block" />
+
+        <div className="relative z-10 w-full max-w-md mx-auto bg-white/95 backdrop-blur-xs rounded-2xl border border-slate-200/80 shadow-sm p-7 sm:p-9">
+          <div className="mb-7">
+            <h2 className="font-display font-semibold text-2xl text-slate-900">Sign In</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Enter your credentials to access the portal
+            </p>
           </div>
 
           {errorMsg && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-medium">
+            <div className="mb-5 p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
               {errorMsg}
             </div>
           )}
 
           {step === 'credentials' ? (
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <form onSubmit={handleLoginSubmit} className="space-y-5">
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                  Login ID *
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Login ID
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
                     <User className="w-4 h-4" />
                   </span>
                   <input
                     type="text"
                     value={loginId}
                     onChange={(e) => setLoginId(e.target.value)}
-                    placeholder="Enter Login ID"
-                    className="w-full pl-9 pr-3.5 py-2.5 rounded-lg border border-slate-300 focus:border-[#1B3664] focus:outline-none text-xs bg-slate-50 focus:bg-white transition"
+                    placeholder="Enter your Login ID"
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 focus:border-[#1B3664] focus:outline-none text-sm bg-white transition"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                  Password *
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Password
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
                     <Lock className="w-4 h-4" />
                   </span>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter Password"
-                    className="w-full pl-9 pr-10 py-2.5 rounded-lg border border-slate-300 focus:border-[#1B3664] focus:outline-none text-xs bg-slate-50 focus:bg-white transition"
+                    placeholder="Enter your password"
+                    className="w-full pl-10 pr-10 py-3 rounded-lg border border-slate-300 focus:border-[#1B3664] focus:outline-none text-sm bg-white transition"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#1B3664]"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -183,36 +189,36 @@ export default function Login() {
               </div>
 
               <div className="flex items-center justify-between pt-0.5">
-                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600">
+                <label className="flex items-center gap-2.5 cursor-pointer text-sm text-slate-600">
                   <input
                     type="checkbox"
                     checked={require2FA}
                     onChange={(e) => setRequire2FA(e.target.checked)}
-                    className="rounded border-slate-300 text-[#1B3664] focus:ring-[#1B3664]"
+                    className="w-4 h-4 rounded border-slate-300 text-[#1B3664] focus:ring-[#1B3664]"
                   />
-                  <span>Enable 2FA / OTP Verification</span>
+                  <span>Two-Factor Authentication (2FA)</span>
                 </label>
               </div>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-2.5 px-5 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-medium text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer"
+                className="w-full py-3 px-5 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-semibold text-sm flex items-center justify-center gap-2 transition cursor-pointer"
               >
-                <span>{submitting ? 'Signing In...' : 'Login'}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <span>{submitting ? 'Signing In...' : 'Sign In'}</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </form>
           ) : (
-            <form onSubmit={handleOtpSubmit} className="space-y-4">
+            <form onSubmit={handleOtpSubmit} className="space-y-5">
               {!isEnrolled ? (
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2.5">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1B3664] text-white text-[11px] font-semibold">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-3">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1B3664] text-white text-xs font-semibold">
                     <QrCode className="w-3.5 h-3.5" />
-                    <span>First-Time Google Authenticator Setup</span>
+                    <span>Google Authenticator Setup</span>
                   </div>
-                  <p className="text-[11px] text-slate-600 leading-relaxed">
-                    Open <b>Google Authenticator</b> on your mobile, tap <b>+</b> &rarr; <b>Scan a QR code</b>, then enter the 6-digit code below.
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Open <b>Google Authenticator</b> on your phone, scan the QR code below, and enter the 6-digit code.
                   </p>
                   {otpAuthUri && (
                     <div className="flex justify-center py-1">
@@ -221,12 +227,12 @@ export default function Login() {
                           otpAuthUri
                         )}`}
                         alt="Google Authenticator QR Code"
-                        className="w-40 h-40 rounded-lg border border-slate-200 bg-white p-2 shadow-xs"
+                        className="w-40 h-40 rounded-lg border border-slate-200 bg-white p-2"
                       />
                     </div>
                   )}
-                  <div className="p-2 rounded-lg bg-white border border-slate-200 text-[11px]">
-                    <span className="text-slate-500">Or enter setup key manually:</span>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-xs">
+                    <span className="text-slate-500">Setup key:</span>
                     <div className="font-mono font-bold text-[#1B3664] tracking-wider mt-0.5 select-all">
                       {manualKey}
                     </div>
@@ -237,21 +243,21 @@ export default function Login() {
                   <div className="w-10 h-10 rounded-lg bg-[#1B3664] text-white flex items-center justify-center mx-auto mb-1">
                     <KeyRound className="w-5 h-5" />
                   </div>
-                  <h5 className="font-semibold text-xs text-slate-900">
-                    Google Authenticator Verification
+                  <h5 className="font-semibold text-sm text-slate-900">
+                    Two-Factor Verification
                   </h5>
-                  <p className="text-[11px] text-slate-600">
-                    Open the <b>Google Authenticator</b> app on your phone and enter the 6-digit code for <b>Bookly ({pendingUser?.LoginID})</b>.
+                  <p className="text-xs text-slate-600">
+                    Enter the 6-digit code from your <b>Google Authenticator</b> app for <b>{pendingUser?.LoginID}</b>.
                   </p>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                  6-Digit Google Authenticator Code *
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  6-Digit Code
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#1B3664]">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1B3664]">
                     <KeyRound className="w-4 h-4" />
                   </span>
                   <input
@@ -261,7 +267,7 @@ export default function Login() {
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     placeholder="000000"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-300 focus:border-[#1B3664] focus:outline-none text-sm font-mono font-bold tracking-widest"
+                    className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 focus:border-[#1B3664] focus:outline-none text-base font-mono font-bold tracking-widest"
                     required
                   />
                 </div>
@@ -271,20 +277,24 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setStep('credentials')}
-                  className="px-4 py-2.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="px-4 py-3 rounded-lg border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-2.5 px-5 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-medium text-xs transition cursor-pointer"
+                  className="flex-1 py-3 px-5 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-semibold text-sm transition cursor-pointer"
                 >
-                  {isEnrolled ? 'Verify & Sign In' : 'Verify & Activate 2FA'}
+                  {isEnrolled ? 'Verify & Sign In' : 'Verify & Activate'}
                 </button>
               </div>
             </form>
           )}
+        </div>
+
+        <div className="relative z-10 text-center text-xs text-slate-400 pt-4">
+          &copy; {new Date().getFullYear()} <b className="text-slate-600">KynexaSoft</b>. All rights reserved.
         </div>
       </div>
     </div>

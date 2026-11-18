@@ -108,50 +108,30 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 4 KPI Cards (Sub-Agent Only) */}
+        {/* 4 KPI Cards (Sub-Agent Only) - Clean Minimalist */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {subAgentCards.map((card) => {
             const Icon = card.icon;
-            const isNavy = card.variant === 'navy';
-            const isSlate = card.variant === 'slate';
             return (
               <div
                 key={card.title}
                 onClick={() => navigate('/FlightPOS')}
-                className={`cursor-pointer rounded-xl p-5 transition-all hover:-translate-y-0.5 shadow-executive border ${
-                  isNavy
-                    ? 'bg-[#1D314F] text-white border-[#1D314F]'
-                    : isSlate
-                    ? 'bg-[#0F172A] text-white border-slate-900'
-                    : 'bg-white text-slate-900 border-slate-200'
-                }`}
+                className="cursor-pointer rounded-xl p-5 bg-white text-slate-900 border border-slate-200 hover:border-slate-300 transition shadow-xs"
               >
                 <div className="flex items-center justify-between">
-                  <span
-                    className={`text-[11px] font-semibold uppercase tracking-wider ${
-                      isNavy || isSlate ? 'text-white/75' : 'text-[#1B3664]'
-                    }`}
-                  >
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                     {card.title}
                   </span>
-                  <div
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                      isNavy || isSlate ? 'bg-white/10 text-white' : 'bg-[#1B3664] text-white'
-                    }`}
-                  >
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-[#1B3664] flex items-center justify-center">
                     <Icon className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="font-display font-semibold text-2xl mt-3 truncate">
+                <div className="font-display font-semibold text-2xl mt-3 text-slate-900 truncate">
                   {card.value}
                 </div>
-                <div
-                  className={`text-xs mt-1.5 flex items-center justify-between ${
-                    isNavy || isSlate ? 'text-white/70' : 'text-slate-500'
-                  }`}
-                >
+                <div className="text-xs mt-1.5 flex items-center justify-between text-slate-500">
                   <span>{card.subtitle}</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
+                  <ArrowUpRight className="w-3.5 h-3.5 shrink-0 text-slate-400" />
                 </div>
               </div>
             );
@@ -387,40 +367,28 @@ export default function Dashboard() {
               <h3 className="font-display font-semibold text-base text-slate-900 mb-3.5">
                 My Booking Status
               </h3>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                  <div className="flex items-center justify-between text-xs font-medium text-[#1B3664]">
-                    <span>Pending</span>
-                    <Clock className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="text-xl font-semibold font-display mt-1 text-slate-900">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="text-xs font-medium text-slate-500">Pending</div>
+                  <div className="text-2xl font-semibold font-display mt-1 text-slate-900">
                     {statusCounts.Pending}
                   </div>
                 </div>
-                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
-                  <div className="flex items-center justify-between text-xs font-medium text-emerald-800">
-                    <span>Approved</span>
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="text-xl font-semibold font-display mt-1 text-emerald-950">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="text-xs font-medium text-slate-500">Approved</div>
+                  <div className="text-2xl font-semibold font-display mt-1 text-slate-900">
                     {statusCounts.Approved}
                   </div>
                 </div>
-                <div className="p-3 rounded-lg bg-[#1D314F] text-white">
-                  <div className="flex items-center justify-between text-xs font-medium text-white/80">
-                    <span>Ticket Issued</span>
-                    <PlaneTakeoff className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="text-xl font-semibold font-display mt-1">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="text-xs font-medium text-slate-500">Ticket Issued</div>
+                  <div className="text-2xl font-semibold font-display mt-1 text-[#1B3664]">
                     {statusCounts.Issued}
                   </div>
                 </div>
-                <div className="p-3 rounded-lg bg-red-50 border border-red-200">
-                  <div className="flex items-center justify-between text-xs font-medium text-red-800">
-                    <span>Rejected / Cancelled</span>
-                    <XCircle className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="text-xl font-semibold font-display mt-1 text-red-950">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="text-xs font-medium text-slate-500">Rejected / Cancelled</div>
+                  <div className="text-2xl font-semibold font-display mt-1 text-slate-900">
                     {bookings.filter((b) => b.ApprovalStatus === 'Rejected' || b.ApprovalStatus === 'Cancelled').length}
                   </div>
                 </div>
@@ -545,52 +513,30 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 4 Core KPI Cards */}
+      {/* 4 Core KPI Cards - Minimalist & Clean */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {kpiCards.map((card) => {
           const Icon = card.icon;
-          const isNavy = card.variant === 'navy';
-          const isSlate = card.variant === 'slate';
           return (
             <div
               key={card.title}
               onClick={() => navigate(card.link)}
-              className={`cursor-pointer rounded-xl p-5 transition-all hover:-translate-y-0.5 shadow-executive border ${
-                isNavy
-                  ? 'bg-[#1D314F] text-white border-[#1D314F]'
-                  : isSlate
-                  ? 'bg-[#0F172A] text-white border-slate-900'
-                  : 'bg-white text-slate-900 border-slate-200'
-              }`}
+              className="cursor-pointer rounded-xl p-5 bg-white text-slate-900 border border-slate-200 hover:border-slate-300 transition shadow-xs"
             >
               <div className="flex items-center justify-between">
-                <span
-                  className={`text-[11px] font-semibold uppercase tracking-wider ${
-                    isNavy || isSlate ? 'text-white/75' : 'text-[#1B3664]'
-                  }`}
-                >
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   {card.title}
                 </span>
-                <div
-                  className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                    isNavy || isSlate
-                      ? 'bg-white/10 text-white'
-                      : 'bg-[#1B3664] text-white'
-                  }`}
-                >
+                <div className="w-8 h-8 rounded-lg bg-slate-100 text-[#1B3664] flex items-center justify-center">
                   <Icon className="w-4 h-4" />
                 </div>
               </div>
-              <div className="font-display font-semibold text-2xl mt-3 truncate">
+              <div className="font-display font-semibold text-2xl mt-3 text-slate-900 truncate">
                 {card.value}
               </div>
-              <div
-                className={`text-xs mt-1.5 flex items-center justify-between ${
-                  isNavy || isSlate ? 'text-white/70' : 'text-slate-500'
-                }`}
-              >
+              <div className="text-xs mt-1.5 flex items-center justify-between text-slate-500">
                 <span>{card.subtitle}</span>
-                <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
+                <ArrowUpRight className="w-3.5 h-3.5 shrink-0 text-slate-400" />
               </div>
             </div>
           );
@@ -600,28 +546,28 @@ export default function Dashboard() {
       {/* Booking Lifecycle Pipeline & Active Flight Segment Inventory */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left: Active Flight Segments Seat Inventory */}
-        <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200 p-5 shadow-executive">
+        <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-display font-semibold text-base text-slate-900">
-                Live Sector Capacity & Load Factor
+                Active Flight Sectors
               </h3>
               <p className="text-xs text-slate-500">
-                Real-time seat availability across active routes
+                Seat availability across scheduled routes
               </p>
             </div>
             <button
               onClick={() => navigate('/SegmentManagement')}
               className="text-xs font-medium text-[#1B3664] hover:underline cursor-pointer"
             >
-              Routes & Inventory &rarr;
+              View All Sectors &rarr;
             </button>
           </div>
 
           {segments.length === 0 ? (
             <div className="py-10 text-center border border-dashed border-slate-200 rounded-xl">
               <p className="text-xs text-slate-500 mb-3">
-                No flight segments created yet. Add a segment in Segment Management and search/book it directly in POS.
+                No flight segments created yet.
               </p>
               <button
                 onClick={() => navigate('/SegmentManagement')}
@@ -642,32 +588,32 @@ export default function Dashboard() {
                   <div
                     key={seg.AirGroupSegmentID}
                     onClick={() => navigate('/FlightPOS')}
-                    className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 hover:border-[#1B3664]/40 transition cursor-pointer"
+                    className="p-4 rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition cursor-pointer"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className="px-2 py-0.5 rounded bg-[#1B3664] text-white font-mono text-xs font-medium">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <span className="px-2.5 py-1 rounded-md bg-slate-100 text-[#1B3664] font-mono text-xs font-semibold">
                           {seg.FlightNumber}
                         </span>
                         <div>
-                          <div className="font-semibold text-xs text-slate-900">
+                          <div className="font-semibold text-sm text-slate-900">
                             {seg.DepartureCity} ({seg.DepartureIata}) &rarr; {seg.ArrivalCity} ({seg.ArrivalIata})
                           </div>
-                          <div className="text-[11px] text-slate-500">
-                            Dep: {formatShortDate(seg.DepartureDate)} • {seg.FlightClass || 'Economy'} • Baggage: Adult={seg.BaggageADT ?? seg.AdultBaggage ?? 20}, Child={seg.BaggageCNN ?? seg.ChildBaggage ?? 20}, Infant={seg.BaggageINF ?? seg.InfantBaggage ?? 0}
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            {formatShortDate(seg.DepartureDate)} • {seg.FlightClass || 'Economy'}
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-mono font-semibold text-xs text-[#1B3664]">
+                      <div className="text-right shrink-0">
+                        <div className="font-mono font-semibold text-sm text-slate-900">
                           {formatCurrencyPKR(seg.AdultPrice)}
                         </div>
-                        <div className="text-[11px] text-slate-500">
-                          {left} of {total} seats left
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {left} / {total} seats left
                         </div>
                       </div>
                     </div>
-                    <div className="mt-2.5 w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                    <div className="mt-3 w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
                       <div
                         className="h-full bg-[#1B3664] rounded-full transition-all"
                         style={{ width: `${pct}%` }}
@@ -682,56 +628,45 @@ export default function Dashboard() {
 
         {/* Right: Booking Status Breakdown & Sub-Agent Credit Standing */}
         <div className="lg:col-span-5 space-y-5">
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-executive">
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
             <h3 className="font-display font-semibold text-base text-slate-900 mb-3.5">
-              Reservation Status Tracker
+              Reservation Status
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                <div className="flex items-center justify-between text-xs font-medium text-[#1B3664]">
-                  <span>Pending</span>
-                  <Clock className="w-3.5 h-3.5" />
-                </div>
-                <div className="text-xl font-semibold font-display mt-1 text-slate-900">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="text-xs font-medium text-slate-500">Pending</div>
+                <div className="text-2xl font-semibold font-display mt-1 text-slate-900">
                   {statusCounts.Pending}
                 </div>
               </div>
-              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
-                <div className="flex items-center justify-between text-xs font-medium text-emerald-800">
-                  <span>Approved</span>
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                </div>
-                <div className="text-xl font-semibold font-display mt-1 text-emerald-950">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="text-xs font-medium text-slate-500">Approved</div>
+                <div className="text-2xl font-semibold font-display mt-1 text-slate-900">
                   {statusCounts.Approved}
                 </div>
               </div>
-              <div className="p-3 rounded-lg bg-[#1D314F] text-white">
-                <div className="flex items-center justify-between text-xs font-medium text-white/80">
-                  <span>Ticket Issued</span>
-                  <PlaneTakeoff className="w-3.5 h-3.5" />
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="text-xs font-medium text-slate-500">Ticket Issued</div>
+                <div className="text-2xl font-semibold font-display mt-1 text-[#1B3664]">
+                  {statusCounts.Issued}
                 </div>
-                <div className="text-xl font-semibold font-display mt-1">{statusCounts.Issued}</div>
               </div>
-              <div className="p-3 rounded-lg bg-red-50 border border-red-200">
-                <div className="flex items-center justify-between text-xs font-medium text-red-800">
-                  <span>Rejected</span>
-                  <XCircle className="w-3.5 h-3.5" />
-                </div>
-                <div className="text-xl font-semibold font-display mt-1 text-red-950">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="text-xs font-medium text-slate-500">Rejected</div>
+                <div className="text-2xl font-semibold font-display mt-1 text-slate-900">
                   {statusCounts.Rejected}
                 </div>
               </div>
-              <div className="p-3 rounded-lg bg-[#0F172A] text-white col-span-2">
-                <div className="flex items-center justify-between text-xs font-medium text-white/75">
-                  <span>Ticket Void</span>
-                  <Ban className="w-3.5 h-3.5" />
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 col-span-2 sm:col-span-2">
+                <div className="text-xs font-medium text-slate-500">Ticket Void</div>
+                <div className="text-2xl font-semibold font-display mt-1 text-slate-900">
+                  {statusCounts.Void}
                 </div>
-                <div className="text-xl font-semibold font-display mt-1">{statusCounts.Void}</div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-executive">
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
             <div className="flex items-center justify-between mb-3.5">
               <h3 className="font-display font-semibold text-base text-slate-900">
                 Partner Agency Wallets
@@ -740,7 +675,7 @@ export default function Dashboard() {
                 onClick={() => navigate('/ManageSubAgents')}
                 className="text-xs font-medium text-[#1B3664] hover:underline cursor-pointer"
               >
-                Partner Agencies &rarr;
+                Manage All &rarr;
               </button>
             </div>
             {subAgents.length === 0 ? (
@@ -755,33 +690,25 @@ export default function Dashboard() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-2.5">
+              <div className="divide-y divide-slate-100">
                 {subAgents.map((ag) => (
                   <div
                     key={ag.SubCompanyID}
-                    className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200"
+                    className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
                   >
                     <div className="min-w-0">
                       <div className="font-semibold text-xs text-slate-900 truncate">
                         {ag.CompanyName}
                       </div>
-                      <div className="text-[11px] text-slate-500">
+                      <div className="text-[11px] text-slate-500 mt-0.5">
                         {ag.City} • Limit: {formatCurrencyPKR(ag.CreditLimit)}
                       </div>
                     </div>
                     <div className="text-right shrink-0 ml-2">
-                      <div className="font-mono font-semibold text-xs text-[#1B3664]">
+                      <div className="font-mono font-semibold text-xs text-slate-900">
                         {formatCurrencyPKR(ag.CreditLimitBalance)}
                       </div>
-                      <span
-                        className={`inline-block text-[10px] px-2 py-0.5 rounded font-medium ${
-                          ag.AccountStatus === 'Enable'
-                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                            : 'bg-slate-200 text-slate-700'
-                        }`}
-                      >
-                        {ag.AccountStatus}
-                      </span>
+                      <span className="text-[10px] text-slate-400">Available</span>
                     </div>
                   </div>
                 ))}
