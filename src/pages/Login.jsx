@@ -114,7 +114,6 @@ export default function Login() {
 
         <div className="relative z-10 flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-5">
           <span>&copy; {new Date().getFullYear()} KynexaSoft. All rights reserved.</span>
-          <span>kynexasoft.com</span>
         </div>
       </div>
 
