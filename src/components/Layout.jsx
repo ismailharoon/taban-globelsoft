@@ -163,7 +163,7 @@ export default function Layout({ children }) {
   }, [searchQuery, bookings, segments, subAgents]);
 
   return (
-    <div className="min-h-screen flex bg-[#F8FAFC] text-slate-800">
+    <div className="min-h-screen flex bg-[#EEF2F6] text-slate-900">
       {/* Mobile Sidebar Overlay */}
       {mobileOpen && (
         <div

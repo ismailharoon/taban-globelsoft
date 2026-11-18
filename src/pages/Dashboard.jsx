@@ -108,30 +108,47 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 4 KPI Cards (Sub-Agent Only) - Clean Minimalist */}
+        {/* 4 KPI Cards (Sub-Agent Only) - Balanced Navy & White Contrast */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {subAgentCards.map((card) => {
+          {subAgentCards.map((card, idx) => {
             const Icon = card.icon;
+            const isDark = idx === 1 || idx === 3;
             return (
               <div
                 key={card.title}
                 onClick={() => navigate('/FlightPOS')}
-                className="cursor-pointer rounded-xl p-5 bg-white text-slate-900 border border-slate-200 hover:border-slate-300 transition shadow-xs"
+                className={`cursor-pointer rounded-xl p-5 transition shadow-sm border ${
+                  isDark
+                    ? 'bg-[#0F172A] text-white border-[#0F172A]'
+                    : 'bg-white text-slate-900 border-slate-200/90 hover:border-slate-300'
+                }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <span
+                    className={`text-xs font-semibold uppercase tracking-wider ${
+                      isDark ? 'text-slate-300' : 'text-slate-500'
+                    }`}
+                  >
                     {card.title}
                   </span>
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-[#1B3664] flex items-center justify-center">
+                  <div
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                      isDark ? 'bg-white/10 text-white' : 'bg-[#0F172A] text-white'
+                    }`}
+                  >
                     <Icon className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="font-display font-semibold text-2xl mt-3 text-slate-900 truncate">
+                <div className="font-display font-semibold text-2xl mt-3 truncate">
                   {card.value}
                 </div>
-                <div className="text-xs mt-1.5 flex items-center justify-between text-slate-500">
+                <div
+                  className={`text-xs mt-2 flex items-center justify-between ${
+                    isDark ? 'text-slate-400' : 'text-slate-500'
+                  }`}
+                >
                   <span>{card.subtitle}</span>
-                  <ArrowUpRight className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                  <ArrowUpRight className="w-4 h-4 shrink-0" />
                 </div>
               </div>
             );
@@ -380,9 +397,9 @@ export default function Dashboard() {
                     {statusCounts.Approved}
                   </div>
                 </div>
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <div className="text-xs font-medium text-slate-500">Ticket Issued</div>
-                  <div className="text-2xl font-semibold font-display mt-1 text-[#1B3664]">
+                <div className="p-3.5 rounded-xl bg-[#0F172A] text-white border border-[#0F172A]">
+                  <div className="text-xs font-medium text-slate-300">Ticket Issued</div>
+                  <div className="text-2xl font-semibold font-display mt-1 text-white">
                     {statusCounts.Issued}
                   </div>
                 </div>
@@ -513,30 +530,47 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 4 Core KPI Cards - Minimalist & Clean */}
+      {/* 4 Core KPI Cards - Balanced Executive Contrast */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {kpiCards.map((card) => {
+        {kpiCards.map((card, idx) => {
           const Icon = card.icon;
+          const isDark = idx === 1 || idx === 3;
           return (
             <div
               key={card.title}
               onClick={() => navigate(card.link)}
-              className="cursor-pointer rounded-xl p-5 bg-white text-slate-900 border border-slate-200 hover:border-slate-300 transition shadow-xs"
+              className={`cursor-pointer rounded-xl p-5 transition shadow-sm border ${
+                isDark
+                  ? 'bg-[#0F172A] text-white border-[#0F172A]'
+                  : 'bg-white text-slate-900 border-slate-200/90 hover:border-slate-300'
+              }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <span
+                  className={`text-xs font-semibold uppercase tracking-wider ${
+                    isDark ? 'text-slate-300' : 'text-slate-500'
+                  }`}
+                >
                   {card.title}
                 </span>
-                <div className="w-8 h-8 rounded-lg bg-slate-100 text-[#1B3664] flex items-center justify-center">
+                <div
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                    isDark ? 'bg-white/10 text-white' : 'bg-[#0F172A] text-white'
+                  }`}
+                >
                   <Icon className="w-4 h-4" />
                 </div>
               </div>
-              <div className="font-display font-semibold text-2xl mt-3 text-slate-900 truncate">
+              <div className="font-display font-semibold text-2xl mt-3 truncate">
                 {card.value}
               </div>
-              <div className="text-xs mt-1.5 flex items-center justify-between text-slate-500">
+              <div
+                className={`text-xs mt-2 flex items-center justify-between ${
+                  isDark ? 'text-slate-400' : 'text-slate-500'
+                }`}
+              >
                 <span>{card.subtitle}</span>
-                <ArrowUpRight className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                <ArrowUpRight className="w-4 h-4 shrink-0" />
               </div>
             </div>
           );
@@ -546,93 +580,97 @@ export default function Dashboard() {
       {/* Booking Lifecycle Pipeline & Active Flight Segment Inventory */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left: Active Flight Segments Seat Inventory */}
-        <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
-          <div className="flex items-center justify-between mb-4">
+        <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200/90 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 bg-[#0F172A] text-white flex items-center justify-between">
             <div>
-              <h3 className="font-display font-semibold text-base text-slate-900">
+              <h3 className="font-display font-semibold text-base">
                 Active Flight Sectors
               </h3>
-              <p className="text-xs text-slate-500">
-                Seat availability across scheduled routes
+              <p className="text-xs text-slate-300 mt-0.5">
+                Real-time seat availability across scheduled routes
               </p>
             </div>
             <button
               onClick={() => navigate('/SegmentManagement')}
-              className="text-xs font-medium text-[#1B3664] hover:underline cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition cursor-pointer"
             >
               View All Sectors &rarr;
             </button>
           </div>
 
-          {segments.length === 0 ? (
-            <div className="py-10 text-center border border-dashed border-slate-200 rounded-xl">
-              <p className="text-xs text-slate-500 mb-3">
-                No flight segments created yet.
-              </p>
-              <button
-                onClick={() => navigate('/SegmentManagement')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#1B3664] text-white text-xs font-medium hover:bg-[#0F172A] transition cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Flight Segment</span>
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {segments.map((seg) => {
-                const total = Number(seg.TotalSeats) || 160;
-                const left = Number(seg.SeatsLeft ?? seg.TotalSeats) || 0;
-                const sold = Math.max(0, total - left);
-                const pct = Math.min(100, Math.round((sold / total) * 100));
-                return (
-                  <div
-                    key={seg.AirGroupSegmentID}
-                    onClick={() => navigate('/FlightPOS')}
-                    className="p-4 rounded-xl bg-white border border-slate-200 hover:border-slate-300 transition cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <span className="px-2.5 py-1 rounded-md bg-slate-100 text-[#1B3664] font-mono text-xs font-semibold">
-                          {seg.FlightNumber}
-                        </span>
-                        <div>
-                          <div className="font-semibold text-sm text-slate-900">
-                            {seg.DepartureCity} ({seg.DepartureIata}) &rarr; {seg.ArrivalCity} ({seg.ArrivalIata})
+          <div className="p-5">
+            {segments.length === 0 ? (
+              <div className="py-10 text-center border border-dashed border-slate-200 rounded-xl">
+                <p className="text-xs text-slate-500 mb-3">
+                  No flight segments created yet.
+                </p>
+                <button
+                  onClick={() => navigate('/SegmentManagement')}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#1B3664] text-white text-xs font-medium hover:bg-[#0F172A] transition cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Flight Segment</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {segments.map((seg) => {
+                  const total = Number(seg.TotalSeats) || 160;
+                  const left = Number(seg.SeatsLeft ?? seg.TotalSeats) || 0;
+                  const sold = Math.max(0, total - left);
+                  const pct = Math.min(100, Math.round((sold / total) * 100));
+                  return (
+                    <div
+                      key={seg.AirGroupSegmentID}
+                      onClick={() => navigate('/FlightPOS')}
+                      className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 hover:border-[#1B3664]/50 hover:bg-white transition cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <span className="px-2.5 py-1 rounded-md bg-[#1B3664] text-white font-mono text-xs font-semibold">
+                            {seg.FlightNumber}
+                          </span>
+                          <div>
+                            <div className="font-semibold text-sm text-slate-900">
+                              {seg.DepartureCity} ({seg.DepartureIata}) &rarr; {seg.ArrivalCity} ({seg.ArrivalIata})
+                            </div>
+                            <div className="text-xs text-slate-500 mt-0.5">
+                              {formatShortDate(seg.DepartureDate)} • {seg.FlightClass || 'Economy'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-mono font-bold text-sm text-[#1B3664]">
+                            {formatCurrencyPKR(seg.AdultPrice)}
                           </div>
                           <div className="text-xs text-slate-500 mt-0.5">
-                            {formatShortDate(seg.DepartureDate)} • {seg.FlightClass || 'Economy'}
+                            {left} / {total} seats left
                           </div>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <div className="font-mono font-semibold text-sm text-slate-900">
-                          {formatCurrencyPKR(seg.AdultPrice)}
-                        </div>
-                        <div className="text-xs text-slate-500 mt-0.5">
-                          {left} / {total} seats left
-                        </div>
+                      <div className="mt-3 w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                        <div
+                          className="h-full bg-[#1B3664] rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
                       </div>
                     </div>
-                    <div className="mt-3 w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                      <div
-                        className="h-full bg-[#1B3664] rounded-full transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right: Booking Status Breakdown & Sub-Agent Credit Standing */}
         <div className="lg:col-span-5 space-y-5">
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
-            <h3 className="font-display font-semibold text-base text-slate-900 mb-3.5">
-              Reservation Status
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm overflow-hidden">
+            <div className="px-5 py-3.5 bg-[#0F172A] text-white">
+              <h3 className="font-display font-semibold text-sm">
+                Reservation Status
+              </h3>
+            </div>
+            <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                 <div className="text-xs font-medium text-slate-500">Pending</div>
                 <div className="text-2xl font-semibold font-display mt-1 text-slate-900">
@@ -645,9 +683,9 @@ export default function Dashboard() {
                   {statusCounts.Approved}
                 </div>
               </div>
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="text-xs font-medium text-slate-500">Ticket Issued</div>
-                <div className="text-2xl font-semibold font-display mt-1 text-[#1B3664]">
+              <div className="p-3.5 rounded-xl bg-[#1B3664] text-white border border-[#1B3664]">
+                <div className="text-xs font-medium text-slate-200">Ticket Issued</div>
+                <div className="text-2xl font-semibold font-display mt-1 text-white">
                   {statusCounts.Issued}
                 </div>
               </div>
@@ -666,54 +704,56 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
-            <div className="flex items-center justify-between mb-3.5">
-              <h3 className="font-display font-semibold text-base text-slate-900">
+          <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm overflow-hidden">
+            <div className="px-5 py-3.5 bg-[#0F172A] text-white flex items-center justify-between">
+              <h3 className="font-display font-semibold text-sm">
                 Partner Agency Wallets
               </h3>
               <button
                 onClick={() => navigate('/ManageSubAgents')}
-                className="text-xs font-medium text-[#1B3664] hover:underline cursor-pointer"
+                className="text-xs font-medium text-slate-200 hover:text-white cursor-pointer"
               >
                 Manage All &rarr;
               </button>
             </div>
-            {subAgents.length === 0 ? (
-              <div className="py-7 text-center border border-dashed border-slate-200 rounded-xl">
-                <p className="text-xs text-slate-500 mb-3">No Sub Agents added yet.</p>
-                <button
-                  onClick={() => navigate('/ManageSubAgents')}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1B3664] text-white text-xs font-medium hover:bg-[#0F172A] transition cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Sub Agent</span>
-                </button>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {subAgents.map((ag) => (
-                  <div
-                    key={ag.SubCompanyID}
-                    className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+            <div className="p-5">
+              {subAgents.length === 0 ? (
+                <div className="py-7 text-center border border-dashed border-slate-200 rounded-xl">
+                  <p className="text-xs text-slate-500 mb-3">No Sub Agents added yet.</p>
+                  <button
+                    onClick={() => navigate('/ManageSubAgents')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1B3664] text-white text-xs font-medium hover:bg-[#0F172A] transition cursor-pointer"
                   >
-                    <div className="min-w-0">
-                      <div className="font-semibold text-xs text-slate-900 truncate">
-                        {ag.CompanyName}
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Sub Agent</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {subAgents.map((ag) => (
+                    <div
+                      key={ag.SubCompanyID}
+                      className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-semibold text-xs text-slate-900 truncate">
+                          {ag.CompanyName}
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          {ag.City} • Limit: {formatCurrencyPKR(ag.CreditLimit)}
+                        </div>
                       </div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
-                        {ag.City} • Limit: {formatCurrencyPKR(ag.CreditLimit)}
+                      <div className="text-right shrink-0 ml-2">
+                        <div className="font-mono font-bold text-xs text-[#1B3664]">
+                          {formatCurrencyPKR(ag.CreditLimitBalance)}
+                        </div>
+                        <span className="text-[10px] text-slate-500">Available</span>
                       </div>
                     </div>
-                    <div className="text-right shrink-0 ml-2">
-                      <div className="font-mono font-semibold text-xs text-slate-900">
-                        {formatCurrencyPKR(ag.CreditLimitBalance)}
-                      </div>
-                      <span className="text-[10px] text-slate-400">Available</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
