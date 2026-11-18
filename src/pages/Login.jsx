@@ -83,7 +83,7 @@ export default function Login() {
       <div className="hidden lg:flex lg:col-span-6 bg-[#0F172A] text-white p-12 flex-col justify-between relative overflow-hidden">
         {/* Subtle Aviation Background Photo */}
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-20"
+          className="absolute inset-0 bg-cover bg-center opacity-30"
           style={{
             backgroundImage:
               "url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1600&q=80')"
@@ -117,7 +117,7 @@ export default function Login() {
       <div className="lg:col-span-6 flex flex-col justify-between p-6 sm:p-12 relative overflow-hidden bg-white">
         {/* Subtle Right-Side Aviation Backdrop */}
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-[0.07] pointer-events-none"
+          className="absolute inset-0 bg-cover bg-center opacity-[0.16] pointer-events-none"
           style={{
             backgroundImage:
               "url('https://images.unsplash.com/photo-1540339832862-474599807836?auto=format&fit=crop&w=1400&q=80')"
