@@ -8,14 +8,16 @@ import {
   FileSpreadsheet,
   FileText,
   Luggage,
-  Clock
+  Clock,
+  BarChart3
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
 import {
   formatCurrencyPKR,
   formatDateTime,
   downloadExcelManifest,
-  downloadWordManifest
+  downloadWordManifest,
+  downloadSegmentSlabReportExcel
 } from '../utils/exporters';
 
 const INITIAL_SEGMENT_FORM = {
@@ -125,6 +127,192 @@ export default function SegmentManagement() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(INITIAL_SEGMENT_FORM);
   const [detailsSegment, setDetailsSegment] = useState(null);
+  const [slabReportSegment, setSlabReportSegment] = useState(null);
+  const [slabReportFilter, setSlabReportFilter] = useState('ALL_ACTIVE');
+
+  // Build CFO 5-Slab Sector Sales & Revenue Breakdown for a Segment
+  const buildSegmentSlabReport = (seg, filterMode = 'ALL_ACTIVE') => {
+    if (!seg) return { slabSummaries: [], rows: [], totalSeatedSold: 0, totalInfants: 0, grandTotalRevenue: 0 };
+
+    const groupIds = flights
+      .filter((f) => (f.SegmentIDs || []).includes(seg.AirGroupSegmentID))
+      .map((f) => f.AirGroupID);
+
+    const activeBookings = bookings.filter((b) => {
+      if (
+        b.ApprovalStatus === 'Rejected' ||
+        b.ApprovalStatus === 'Ticket Void' ||
+        b.ApprovalStatus === 'Cancelled'
+      ) {
+        return false;
+      }
+      if (filterMode === 'ISSUED_ONLY' && b.ApprovalStatus !== 'Ticket Issued') {
+        return false;
+      }
+      if (Array.isArray(b.SegmentIDs) && b.SegmentIDs.includes(seg.AirGroupSegmentID)) return true;
+      if (b.AirGroupSegmentID === seg.AirGroupSegmentID) return true;
+      if (groupIds.includes(b.AirGroupID)) return true;
+      return false;
+    });
+
+    // Sort oldest to newest so seats fill Slab 1 -> Slab 5 in exact booking sequence
+    const chronological = [...activeBookings].reverse();
+
+    const tierCaps = [
+      Number(seg.Tier1Seats) || 0,
+      Number(seg.Tier2Seats) || 0,
+      Number(seg.Tier3Seats) || 0,
+      Number(seg.Tier4Seats) || 0,
+      Number(seg.Tier5Seats) || 0
+    ];
+    const hasTiers = tierCaps.reduce((a, b) => a + b, 0) > 0;
+
+    const getTierFares = (tierNum, isRoundTrip) => {
+      if (!hasTiers) {
+        const adt =
+          isRoundTrip && Number(seg.ReturnAdultPrice) > 0
+            ? Number(seg.ReturnAdultPrice)
+            : Number(seg.AdultPrice) || 0;
+        const cnn =
+          isRoundTrip && Number(seg.ReturnChildPrice) > 0
+            ? Number(seg.ReturnChildPrice)
+            : Number(seg.ChildPrice) || 0;
+        const inf =
+          isRoundTrip && Number(seg.ReturnInfantPrice) > 0
+            ? Number(seg.ReturnInfantPrice)
+            : Number(seg.InfantPrice) || 0;
+        return { adt, cnn, inf };
+      }
+      const pfx = `Tier${tierNum}`;
+      const oneWayAdt = Number(seg[`${pfx}AdultPrice`] ?? seg.AdultPrice) || 0;
+      const oneWayCnn = Number(seg[`${pfx}ChildPrice`] ?? seg.ChildPrice) || 0;
+      const oneWayInf = Number(seg[`${pfx}InfantPrice`] ?? seg.InfantPrice) || 0;
+      const retAdt = Number(seg[`${pfx}ReturnAdultPrice`] ?? seg.ReturnAdultPrice) || 0;
+      const retCnn = Number(seg[`${pfx}ReturnChildPrice`] ?? seg.ReturnChildPrice) || 0;
+      const retInf = Number(seg[`${pfx}ReturnInfantPrice`] ?? seg.ReturnInfantPrice) || 0;
+      return {
+        adt: isRoundTrip && retAdt > 0 ? retAdt : oneWayAdt,
+        cnn: isRoundTrip && retCnn > 0 ? retCnn : oneWayCnn,
+        inf: isRoundTrip && retInf > 0 ? retInf : oneWayInf
+      };
+    };
+
+    const getTierForSeatIndex = (seatIdx) => {
+      if (!hasTiers) return 1;
+      let cum = 0;
+      for (let k = 0; k < 5; k++) {
+        cum += tierCaps[k];
+        if (tierCaps[k] > 0 && seatIdx < cum) return k + 1;
+      }
+      for (let k = 4; k >= 0; k--) {
+        if (tierCaps[k] > 0) return k + 1;
+      }
+      return 1;
+    };
+
+    const slabStats = [1, 2, 3, 4, 5].map((tierNum) => {
+      const pfx = `Tier${tierNum}`;
+      return {
+        tier: tierNum,
+        allocated: hasTiers ? tierCaps[tierNum - 1] : tierNum === 1 ? Number(seg.TotalSeats) || 0 : 0,
+        soldSeats: 0,
+        infants: 0,
+        oneWayAdultRate: Number(seg[`${pfx}AdultPrice`] ?? seg.AdultPrice) || 0,
+        returnAdultRate: Number(seg[`${pfx}ReturnAdultPrice`] ?? seg.ReturnAdultPrice) || 0,
+        revenue: 0
+      };
+    });
+
+    const rows = [];
+    let seatCursor = 0;
+
+    chronological.forEach((b) => {
+      const adt = Number(b.AdultCount) || 0;
+      const cnn = Number(b.ChildCount) || 0;
+      const inf = Number(b.InfantCount) || 0;
+      const isRT = b.TripType === 'Round Trip';
+      const bookedByName =
+        b.SubCompanyID && b.SubCompanyID !== 'DIRECT'
+          ? `${b.SubCompanyName || b.SubCompanyID}${b.BookedByLoginID ? ` (@${b.BookedByLoginID})` : ''}`
+          : `Admin (${b.BookedByLoginID || 'admin'})`;
+
+      const startTier = getTierForSeatIndex(seatCursor);
+      const tierBuckets = {};
+
+      const addSeatToBucket = (tier, fare) => {
+        if (!tierBuckets[tier]) {
+          tierBuckets[tier] = { tier, seatedPax: 0, unitFareSum: 0, subtotal: 0, infants: 0 };
+        }
+        tierBuckets[tier].seatedPax += 1;
+        tierBuckets[tier].unitFareSum += fare;
+        tierBuckets[tier].subtotal += fare;
+        slabStats[tier - 1].soldSeats += 1;
+        slabStats[tier - 1].revenue += fare;
+      };
+
+      for (let i = 0; i < adt; i++) {
+        const t = getTierForSeatIndex(seatCursor);
+        addSeatToBucket(t, getTierFares(t, isRT).adt);
+        seatCursor += 1;
+      }
+      for (let i = 0; i < cnn; i++) {
+        const t = getTierForSeatIndex(seatCursor);
+        addSeatToBucket(t, getTierFares(t, isRT).cnn);
+        seatCursor += 1;
+      }
+
+      if (inf > 0) {
+        const infFare = getTierFares(startTier, isRT).inf * inf;
+        if (!tierBuckets[startTier]) {
+          tierBuckets[startTier] = { tier: startTier, seatedPax: 0, unitFareSum: 0, subtotal: 0, infants: 0 };
+        }
+        tierBuckets[startTier].infants += inf;
+        tierBuckets[startTier].subtotal += infFare;
+        slabStats[startTier - 1].infants += inf;
+        slabStats[startTier - 1].revenue += infFare;
+      }
+
+      Object.values(tierBuckets).forEach((bucket) => {
+        const unitFare =
+          bucket.seatedPax > 0 ? Math.round(bucket.unitFareSum / bucket.seatedPax) : 0;
+        const paxLabel =
+          bucket.infants > 0
+            ? `${bucket.seatedPax} Pax + ${bucket.infants} Inf`
+            : `${bucket.seatedPax} Pax`;
+        rows.push({
+          bookingId: b.AirGroupBookingID,
+          date: b.TimeStamp || '',
+          pnr: b.PNR || '',
+          bookedByName,
+          status: b.ApprovalStatus,
+          tripType: b.TripType || 'One Way',
+          tier: bucket.tier,
+          unitFare,
+          seatedPax: bucket.seatedPax,
+          infants: bucket.infants,
+          paxLabel,
+          totalAmount: bucket.subtotal
+        });
+      });
+    });
+
+    const slabSummaries = slabStats.map((s) => ({
+      ...s,
+      leftSeats: Math.max(0, s.allocated - s.soldSeats)
+    }));
+
+    const totalSeatedSold = slabSummaries.reduce((acc, s) => acc + s.soldSeats, 0);
+    const totalInfants = slabSummaries.reduce((acc, s) => acc + s.infants, 0);
+    const grandTotalRevenue = slabSummaries.reduce((acc, s) => acc + s.revenue, 0);
+
+    return {
+      slabSummaries,
+      rows,
+      totalSeatedSold,
+      totalInfants,
+      grandTotalRevenue
+    };
+  };
 
   const openCreateModal = () => {
     setEditingId(null);
@@ -505,6 +693,14 @@ export default function SegmentManagement() {
                             <span>Word</span>
                           </button>
                           <button
+                            onClick={() => setSlabReportSegment(seg)}
+                            className="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                            title="CFO 5-Slab Sector Sales & Revenue Report"
+                          >
+                            <BarChart3 className="w-3.5 h-3.5" />
+                            <span>Slab Report</span>
+                          </button>
+                          <button
                             onClick={() => setDetailsSegment(seg)}
                             className="px-2.5 py-1.5 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
                           >
@@ -652,6 +848,228 @@ export default function SegmentManagement() {
           </div>
         </div>
       )}
+
+      {/* CFO 5-SLAB SECTOR SALES & REVENUE REPORT MODAL */}
+      {slabReportSegment && (() => {
+        const report = buildSegmentSlabReport(slabReportSegment, slabReportFilter);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-4 overflow-y-auto">
+            <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-5xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+              <div className="bg-[#1D314F] text-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <div>
+                  <h5 className="font-semibold text-sm flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-amber-400" />
+                    <span>
+                      CFO 5-Slab Sector Report — {slabReportSegment.FlightNumber} (
+                      {slabReportSegment.DepartureIata} &rarr; {slabReportSegment.ArrivalIata})
+                    </span>
+                  </h5>
+                  <p className="text-[11px] text-white/75">
+                    Flight Date: {formatDateTime(slabReportSegment.DepartureDate)} • Total Capacity:{' '}
+                    {slabReportSegment.TotalSeats} Seats
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex rounded-lg bg-white/10 p-0.5 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setSlabReportFilter('ALL_ACTIVE')}
+                      className={`px-2.5 py-1 rounded-md font-semibold transition cursor-pointer ${
+                        slabReportFilter === 'ALL_ACTIVE'
+                          ? 'bg-white text-[#1B3664]'
+                          : 'text-white/80 hover:text-white'
+                      }`}
+                    >
+                      All Active Bookings
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSlabReportFilter('ISSUED_ONLY')}
+                      className={`px-2.5 py-1 rounded-md font-semibold transition cursor-pointer ${
+                        slabReportFilter === 'ISSUED_ONLY'
+                          ? 'bg-white text-[#1B3664]'
+                          : 'text-white/80 hover:text-white'
+                      }`}
+                    >
+                      Issued Tickets Only
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => downloadSegmentSlabReportExcel(slabReportSegment, report)}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span>Export CFO Excel (.xlsx)</span>
+                  </button>
+                  <button
+                    onClick={() => setSlabReportSegment(null)}
+                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-5 overflow-y-auto space-y-5 text-xs">
+                {/* 1. 5-SLAB SUMMARY TABLE */}
+                <div>
+                  <h6 className="font-display font-semibold text-xs uppercase tracking-wider text-[#1B3664] mb-2">
+                    5-Slab Allocation &amp; Revenue Summary
+                  </h6>
+                  <div className="border border-slate-300 rounded-xl overflow-hidden">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-300 text-[11px] uppercase">
+                          <th className="py-2 px-3">Slab</th>
+                          <th className="py-2 px-3 text-center">Allocated Seats</th>
+                          <th className="py-2 px-3 text-center">Sold Seats</th>
+                          <th className="py-2 px-3 text-center">Remaining</th>
+                          <th className="py-2 px-3 text-right">1-Way Adult Rate</th>
+                          <th className="py-2 px-3 text-right">Return Adult Rate</th>
+                          <th className="py-2 px-3 text-center">Infants</th>
+                          <th className="py-2 px-3 text-right">Slab Revenue</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 font-mono">
+                        {report.slabSummaries.map((s) => (
+                          <tr key={s.tier} className="hover:bg-slate-50">
+                            <td className="py-2 px-3 font-sans font-bold text-[#1B3664]">
+                              SLAB {s.tier}
+                            </td>
+                            <td className="py-2 px-3 text-center">{s.allocated}</td>
+                            <td className="py-2 px-3 text-center font-semibold text-emerald-700">
+                              {s.soldSeats}
+                            </td>
+                            <td className="py-2 px-3 text-center text-slate-500">{s.leftSeats}</td>
+                            <td className="py-2 px-3 text-right">
+                              {formatCurrencyPKR(s.oneWayAdultRate)}
+                            </td>
+                            <td className="py-2 px-3 text-right">
+                              {formatCurrencyPKR(
+                                s.returnAdultRate > 0 ? s.returnAdultRate : s.oneWayAdultRate
+                              )}
+                            </td>
+                            <td className="py-2 px-3 text-center">{s.infants}</td>
+                            <td className="py-2 px-3 text-right font-bold text-[#1B3664]">
+                              {formatCurrencyPKR(s.revenue)}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="bg-[#EFF4FB] font-bold text-[#1B3664] border-t-2 border-slate-300">
+                          <td className="py-2.5 px-3 font-sans">SECTOR TOTAL</td>
+                          <td className="py-2.5 px-3 text-center">
+                            {slabReportSegment.TotalSeats}
+                          </td>
+                          <td className="py-2.5 px-3 text-center text-emerald-800">
+                            {report.totalSeatedSold}
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            {Math.max(
+                              0,
+                              (Number(slabReportSegment.TotalSeats) || 0) - report.totalSeatedSold
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-right">—</td>
+                          <td className="py-2.5 px-3 text-right">—</td>
+                          <td className="py-2.5 px-3 text-center">{report.totalInfants}</td>
+                          <td className="py-2.5 px-3 text-right text-sm">
+                            {formatCurrencyPKR(report.grandTotalRevenue)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 2. AGENT / ADMIN SLAB-WISE BREAKDOWN TABLE */}
+                <div>
+                  <h6 className="font-display font-semibold text-xs uppercase tracking-wider text-[#1B3664] mb-2">
+                    Agent &amp; Admin Booking Breakdown by Slab ({report.rows.length} Entries)
+                  </h6>
+                  <div className="border border-slate-300 rounded-xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-[#A9D08E] text-slate-900 font-bold border-b border-slate-300 text-[11px] uppercase">
+                            <th className="py-2.5 px-3 border-r border-slate-300">#</th>
+                            <th className="py-2.5 px-3 border-r border-slate-300">Date</th>
+                            <th className="py-2.5 px-3 border-r border-slate-300">PNR</th>
+                            <th className="py-2.5 px-3 border-r border-slate-300">
+                              Agent / Admin Name
+                            </th>
+                            <th className="py-2.5 px-3 border-r border-slate-300">Status</th>
+                            <th className="py-2.5 px-3 border-r border-slate-300 text-center">
+                              Slab
+                            </th>
+                            <th className="py-2.5 px-3 border-r border-slate-300 text-right">
+                              Fare Rate
+                            </th>
+                            <th className="py-2.5 px-3 border-r border-slate-300 text-center">
+                              Pax Taken
+                            </th>
+                            <th className="py-2.5 px-3 text-right">Total Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {report.rows.length === 0 ? (
+                            <tr>
+                              <td colSpan={9} className="py-8 text-center text-slate-400">
+                                No bookings found for this sector under the selected filter.
+                              </td>
+                            </tr>
+                          ) : (
+                            report.rows.map((row, idx) => (
+                              <tr key={`${row.bookingId}-${row.tier}-${idx}`} className="hover:bg-slate-50">
+                                <td className="py-2 px-3 border-r border-slate-200 font-mono text-slate-500">
+                                  {idx + 1}
+                                </td>
+                                <td className="py-2 px-3 border-r border-slate-200 font-mono text-[11px] text-slate-600 whitespace-nowrap">
+                                  {row.date}
+                                </td>
+                                <td className="py-2 px-3 border-r border-slate-200 font-mono font-bold text-[#1B3664]">
+                                  {row.pnr}
+                                </td>
+                                <td className="py-2 px-3 border-r border-slate-200 font-semibold text-slate-900">
+                                  {row.bookedByName}
+                                </td>
+                                <td className="py-2 px-3 border-r border-slate-200">
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                                      row.status === 'Ticket Issued'
+                                        ? 'bg-[#1B3664] text-white'
+                                        : 'bg-amber-50 text-amber-800 border border-amber-200'
+                                    }`}
+                                  >
+                                    {row.status}
+                                  </span>
+                                </td>
+                                <td className="py-2 px-3 border-r border-slate-200 text-center">
+                                  <span className="px-2 py-0.5 rounded bg-[#1B3664]/10 text-[#1B3664] font-mono font-bold text-[11px]">
+                                    SLAB {row.tier}
+                                  </span>
+                                </td>
+                                <td className="py-2 px-3 border-r border-slate-200 text-right font-mono font-medium">
+                                  {formatCurrencyPKR(row.unitFare)}
+                                </td>
+                                <td className="py-2 px-3 border-r border-slate-200 text-center font-mono font-semibold">
+                                  {row.paxLabel}
+                                </td>
+                                <td className="py-2 px-3 text-right font-mono font-bold text-[#1B3664]">
+                                  {formatCurrencyPKR(row.totalAmount)}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ADD / EDIT SEGMENT MODAL (With Full Baggage & Airline Fields) */}
       {showEditor && (

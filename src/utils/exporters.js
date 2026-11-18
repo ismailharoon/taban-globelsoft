@@ -889,3 +889,212 @@ export function downloadAgentStatementExcel(agent, transactions = [], dateRange 
 
   triggerBlobDownload(blob, filename);
 }
+
+/**
+ * Generates an OpenXML .xlsx CFO Sector / 5-Slab Sales & Revenue Report
+ */
+export function downloadSegmentSlabReportExcel(segment, report) {
+  const flightClean = String(segment?.FlightNumber || 'SECTOR')
+    .replace(/[^a-zA-Z0-9_-]+/g, '')
+    .toUpperCase();
+  const depIata = (segment?.DepartureIata || 'KHI').toUpperCase();
+  const arrIata = (segment?.ArrivalIata || 'IKA').toUpperCase();
+  const dateToken = formatDDMMMYY(segment?.DepartureDate, 'SECTOR');
+  const filename = `CFO_Slab_Report_${flightClean}_${depIata}-${arrIata}_${dateToken}.xlsx`;
+
+  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+  const sharedStrings = [];
+  const sharedMap = new Map();
+  let totalStringRefs = 0;
+
+  const getSharedStringIndex = (val) => {
+    const str = String(val ?? '');
+    totalStringRefs += 1;
+    if (sharedMap.has(str)) return sharedMap.get(str);
+    const idx = sharedStrings.length;
+    sharedStrings.push(str);
+    sharedMap.set(str, idx);
+    return idx;
+  };
+
+  const makeStringCell = (cellRef, styleIdx, text) => {
+    const str = String(text ?? '');
+    if (str === '') return `<c r="${cellRef}" s="${styleIdx}"/>`;
+    const sIdx = getSharedStringIndex(str);
+    return `<c r="${cellRef}" s="${styleIdx}" t="s"><v>${sIdx}</v></c>`;
+  };
+
+  const makeNumberCell = (cellRef, styleIdx, numVal) => {
+    return `<c r="${cellRef}" s="${styleIdx}"><v>${Number(numVal) || 0}</v></c>`;
+  };
+
+  const xmlRows = [];
+  let r = 1;
+
+  // Row 1: Sector Header
+  xmlRows.push(
+    `<row r="${r}" ht="20" customHeight="1">${[
+      makeStringCell(`A${r}`, 2, `BOOKLY — CFO SECTOR SLAB REPORT`),
+      makeStringCell(`B${r}`, 2, ''),
+      makeStringCell(`C${r}`, 2, ''),
+      makeStringCell(`D${r}`, 2, ''),
+      makeStringCell(`E${r}`, 1, `${segment?.FlightNumber || ''} (${depIata} → ${arrIata})`),
+      makeStringCell(`F${r}`, 3, `Date: ${formatShortDate(segment?.DepartureDate)}`),
+      makeStringCell(`G${r}`, 3, ''),
+      makeStringCell(`H${r}`, 3, `Total Seats: ${segment?.TotalSeats || 0}`),
+      makeStringCell(`I${r}`, 3, '')
+    ].join('')}</row>`
+  );
+  r += 2;
+
+  // 5-Slab Summary Table Header
+  const slabSumHeaders = [
+    'SLAB',
+    'ALLOCATED SEATS',
+    'SOLD SEATS',
+    'REMAINING SEATS',
+    '1-WAY ADULT RATE (PKR)',
+    'RETURN ADULT RATE (PKR)',
+    'INFANTS',
+    'SLAB REVENUE (PKR)'
+  ];
+  xmlRows.push(
+    `<row r="${r}" ht="19" customHeight="1">${slabSumHeaders
+      .map((h, i) => makeStringCell(`${cols[i]}${r}`, 5, h))
+      .join('')}</row>`
+  );
+  r += 1;
+
+  (report?.slabSummaries || []).forEach((s) => {
+    xmlRows.push(
+      `<row r="${r}">${[
+        makeStringCell(`A${r}`, 6, `SLAB ${s.tier}`),
+        makeNumberCell(`B${r}`, 6, s.allocated),
+        makeNumberCell(`C${r}`, 6, s.soldSeats),
+        makeNumberCell(`D${r}`, 6, s.leftSeats),
+        makeNumberCell(`E${r}`, 7, s.oneWayAdultRate),
+        makeNumberCell(`F${r}`, 7, s.returnAdultRate),
+        makeNumberCell(`G${r}`, 6, s.infants),
+        makeNumberCell(`H${r}`, 7, s.revenue)
+      ].join('')}</row>`
+    );
+    r += 1;
+  });
+
+  // Grand Total Summary Row
+  xmlRows.push(
+    `<row r="${r}" ht="19" customHeight="1">${[
+      makeStringCell(`A${r}`, 3, 'TOTAL'),
+      makeNumberCell(`B${r}`, 3, segment?.TotalSeats || 0),
+      makeNumberCell(`C${r}`, 3, report?.totalSeatedSold || 0),
+      makeNumberCell(`D${r}`, 3, Math.max(0, (Number(segment?.TotalSeats) || 0) - (report?.totalSeatedSold || 0))),
+      makeStringCell(`E${r}`, 3, '—'),
+      makeStringCell(`F${r}`, 3, '—'),
+      makeNumberCell(`G${r}`, 3, report?.totalInfants || 0),
+      makeNumberCell(`H${r}`, 7, report?.grandTotalRevenue || 0)
+    ].join('')}</row>`
+  );
+  r += 2;
+
+  // Detailed Agent / Admin Breakdown Header
+  const detailHeaders = [
+    'N.NO',
+    'BOOKING DATE',
+    'PNR',
+    'AGENT / ADMIN NAME',
+    'STATUS',
+    'SLAB',
+    'FARE RATE PER PAX (PKR)',
+    'PAX COUNT',
+    'TOTAL AMOUNT (PKR)'
+  ];
+  xmlRows.push(
+    `<row r="${r}" ht="20" customHeight="1">${detailHeaders
+      .map((h, i) => makeStringCell(`${cols[i]}${r}`, 5, h))
+      .join('')}</row>`
+  );
+  r += 1;
+
+  (report?.rows || []).forEach((row, idx) => {
+    xmlRows.push(
+      `<row r="${r}">${[
+        makeNumberCell(`A${r}`, 6, idx + 1),
+        makeStringCell(`B${r}`, 6, row.date || ''),
+        makeStringCell(`C${r}`, 6, row.pnr || ''),
+        makeStringCell(`D${r}`, 0, row.bookedByName || ''),
+        makeStringCell(`E${r}`, 6, row.status || ''),
+        makeStringCell(`F${r}`, 6, `SLAB ${row.tier}`),
+        makeNumberCell(`G${r}`, 7, row.unitFare || 0),
+        makeStringCell(`H${r}`, 6, row.paxLabel || String(row.seatedPax)),
+        makeNumberCell(`I${r}`, 7, row.totalAmount || 0)
+      ].join('')}</row>`
+    );
+    r += 1;
+  });
+
+  const lastRow = Math.max(10, r);
+  const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <dimension ref="A1:I${lastRow}"/>
+  <sheetViews><sheetView tabSelected="1" workbookViewId="0"/></sheetViews>
+  <sheetFormatPr defaultRowHeight="16"/>
+  <cols>
+    <col min="1" max="1" width="8" customWidth="1"/>
+    <col min="2" max="2" width="18" customWidth="1"/>
+    <col min="3" max="3" width="12" customWidth="1"/>
+    <col min="4" max="4" width="32" customWidth="1"/>
+    <col min="5" max="6" width="16" customWidth="1"/>
+    <col min="7" max="7" width="22" customWidth="1"/>
+    <col min="8" max="8" width="16" customWidth="1"/>
+    <col min="9" max="9" width="20" customWidth="1"/>
+  </cols>
+  <sheetData>${xmlRows.join('')}</sheetData>
+</worksheet>`;
+
+  const sharedStringsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${totalStringRefs}" uniqueCount="${sharedStrings.length}">
+  ${sharedStrings.map((s) => `<si><t xml:space="preserve">${escapeXml(s)}</t></si>`).join('')}
+</sst>`;
+
+  const workbookXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="CFO Slab Report" sheetId="1" r:id="rId1"/></sheets>
+</workbook>`;
+
+  const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
+</Types>`;
+
+  const rootRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`;
+
+  const wbRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
+</Relationships>`;
+
+  const blob = createZipBlob(
+    [
+      { name: '[Content_Types].xml', content: contentTypesXml },
+      { name: '_rels/.rels', content: rootRelsXml },
+      { name: 'xl/_rels/workbook.xml.rels', content: wbRelsXml },
+      { name: 'xl/workbook.xml', content: workbookXml },
+      { name: 'xl/styles.xml', content: STATEMENT_STYLES_XML },
+      { name: 'xl/sharedStrings.xml', content: sharedStringsXml },
+      { name: 'xl/worksheets/sheet1.xml', content: sheetXml }
+    ],
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+
+  triggerBlobDownload(blob, filename);
+}
