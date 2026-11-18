@@ -558,23 +558,22 @@ export default function SegmentManagement() {
       {/* Segments Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="bg-[#1D314F] text-white text-[11px] font-medium uppercase tracking-wider">
-                <th className="py-3 px-3">Flight No & Airline</th>
-                <th className="py-3 px-3">From (Departure)</th>
-                <th className="py-3 px-3">To (Arrival)</th>
-                <th className="py-3 px-3">Flight Date & Time</th>
-                <th className="py-3 px-3">Cabin & Baggage</th>
-                <th className="py-3 px-3 text-center">Seats (Left / Total)</th>
-                <th className="py-3 px-3">Fares</th>
-                <th className="py-3 px-4 text-right">Actions & Manifests</th>
+              <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider">
+                <th className="py-3.5 px-4">Flight No & Airline</th>
+                <th className="py-3.5 px-3">Route (From -&gt; To)</th>
+                <th className="py-3.5 px-3">Flight Date & Time</th>
+                <th className="py-3.5 px-3">Cabin & Baggage</th>
+                <th className="py-3.5 px-3 text-center">Seats (Left / Total)</th>
+                <th className="py-3.5 px-3">Fares</th>
+                <th className="py-3.5 px-4 text-right">Actions & Manifests</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {segments.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-10 text-center text-slate-500">
+                  <td colSpan={7} className="py-10 text-center text-slate-500">
                     No flight segments added yet. Click &ldquo;Add Flight Segment&rdquo; to create your first sector.
                   </td>
                 </tr>
@@ -587,24 +586,16 @@ export default function SegmentManagement() {
                         <div className="font-mono font-semibold text-sm text-[#1B3664]">
                           {seg.FlightNumber}
                         </div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className="text-xs text-slate-500">
                           {seg.OperatingAirlineName || seg.OperatingAirline || '-'}
                         </div>
                       </td>
                       <td className="py-3.5 px-3 whitespace-nowrap">
                         <div className="font-medium text-slate-800">
-                          {seg.DepartureCity} ({seg.DepartureIata})
+                          {seg.DepartureCity} ({seg.DepartureIata}) &rarr; {seg.ArrivalCity} ({seg.ArrivalIata})
                         </div>
-                        <div className="text-[11px] text-slate-500 max-w-[160px] truncate">
-                          {seg.DepartureAirport}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-3 whitespace-nowrap">
-                        <div className="font-medium text-slate-800">
-                          {seg.ArrivalCity} ({seg.ArrivalIata})
-                        </div>
-                        <div className="text-[11px] text-slate-500 max-w-[160px] truncate">
-                          {seg.ArrivalAirport}
+                        <div className="text-xs text-slate-500 max-w-[230px] truncate">
+                          {seg.DepartureAirport} to {seg.ArrivalAirport}
                         </div>
                       </td>
                       <td className="py-3.5 px-3 font-mono whitespace-nowrap">

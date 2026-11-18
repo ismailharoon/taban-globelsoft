@@ -108,47 +108,41 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 4 KPI Cards (Sub-Agent Only) - Balanced Navy & White Contrast */}
+        {/* 4 KPI Cards (Sub-Agent Only) - Soft Light Contrast */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {subAgentCards.map((card, idx) => {
             const Icon = card.icon;
-            const isDark = idx === 1 || idx === 3;
+            const isTinted = idx === 1 || idx === 3;
             return (
               <div
                 key={card.title}
                 onClick={() => navigate('/FlightPOS')}
-                className={`cursor-pointer rounded-xl p-5 transition shadow-sm border ${
-                  isDark
-                    ? 'bg-[#0F172A] text-white border-[#0F172A]'
+                className={`cursor-pointer rounded-xl p-5 transition shadow-xs border ${
+                  isTinted
+                    ? 'bg-[#EFF6FF] text-slate-900 border-blue-200/80 hover:border-blue-300'
                     : 'bg-white text-slate-900 border-slate-200/90 hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span
-                    className={`text-xs font-semibold uppercase tracking-wider ${
-                      isDark ? 'text-slate-300' : 'text-slate-500'
-                    }`}
-                  >
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                     {card.title}
                   </span>
                   <div
                     className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                      isDark ? 'bg-white/10 text-white' : 'bg-[#0F172A] text-white'
+                      isTinted
+                        ? 'bg-[#1B3664] text-white'
+                        : 'bg-slate-100 text-[#1B3664]'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="font-display font-semibold text-2xl mt-3 truncate">
+                <div className="font-display font-semibold text-2xl mt-3 text-slate-900 truncate">
                   {card.value}
                 </div>
-                <div
-                  className={`text-xs mt-2 flex items-center justify-between ${
-                    isDark ? 'text-slate-400' : 'text-slate-500'
-                  }`}
-                >
+                <div className="text-xs mt-2 flex items-center justify-between text-slate-500">
                   <span>{card.subtitle}</span>
-                  <ArrowUpRight className="w-4 h-4 shrink-0" />
+                  <ArrowUpRight className="w-4 h-4 shrink-0 text-slate-400" />
                 </div>
               </div>
             );
@@ -397,9 +391,9 @@ export default function Dashboard() {
                     {statusCounts.Approved}
                   </div>
                 </div>
-                <div className="p-3.5 rounded-xl bg-[#0F172A] text-white border border-[#0F172A]">
-                  <div className="text-xs font-medium text-slate-300">Ticket Issued</div>
-                  <div className="text-2xl font-semibold font-display mt-1 text-white">
+                <div className="p-3.5 rounded-xl bg-[#EFF6FF] text-slate-900 border border-blue-200">
+                  <div className="text-xs font-medium text-[#1B3664]">Ticket Issued</div>
+                  <div className="text-2xl font-semibold font-display mt-1 text-[#1B3664]">
                     {statusCounts.Issued}
                   </div>
                 </div>
@@ -530,47 +524,39 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 4 Core KPI Cards - Balanced Executive Contrast */}
+      {/* 4 Core KPI Cards - Soft Light Contrast */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {kpiCards.map((card, idx) => {
           const Icon = card.icon;
-          const isDark = idx === 1 || idx === 3;
+          const isTinted = idx === 1 || idx === 3;
           return (
             <div
               key={card.title}
               onClick={() => navigate(card.link)}
-              className={`cursor-pointer rounded-xl p-5 transition shadow-sm border ${
-                isDark
-                  ? 'bg-[#0F172A] text-white border-[#0F172A]'
+              className={`cursor-pointer rounded-xl p-5 transition shadow-xs border ${
+                isTinted
+                  ? 'bg-[#EFF6FF] text-slate-900 border-blue-200/80 hover:border-blue-300'
                   : 'bg-white text-slate-900 border-slate-200/90 hover:border-slate-300'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span
-                  className={`text-xs font-semibold uppercase tracking-wider ${
-                    isDark ? 'text-slate-300' : 'text-slate-500'
-                  }`}
-                >
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                   {card.title}
                 </span>
                 <div
                   className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                    isDark ? 'bg-white/10 text-white' : 'bg-[#0F172A] text-white'
+                    isTinted ? 'bg-[#1B3664] text-white' : 'bg-slate-100 text-[#1B3664]'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
                 </div>
               </div>
-              <div className="font-display font-semibold text-2xl mt-3 truncate">
+              <div className="font-display font-semibold text-2xl mt-3 text-slate-900 truncate">
                 {card.value}
               </div>
-              <div
-                className={`text-xs mt-2 flex items-center justify-between ${
-                  isDark ? 'text-slate-400' : 'text-slate-500'
-                }`}
-              >
+              <div className="text-xs mt-2 flex items-center justify-between text-slate-500">
                 <span>{card.subtitle}</span>
-                <ArrowUpRight className="w-4 h-4 shrink-0" />
+                <ArrowUpRight className="w-4 h-4 shrink-0 text-slate-400" />
               </div>
             </div>
           );
@@ -580,19 +566,19 @@ export default function Dashboard() {
       {/* Booking Lifecycle Pipeline & Active Flight Segment Inventory */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left: Active Flight Segments Seat Inventory */}
-        <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200/90 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 bg-[#0F172A] text-white flex items-center justify-between">
+        <div className="lg:col-span-7 bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
+          <div className="px-5 py-4 bg-slate-100/80 border-b border-slate-200 flex items-center justify-between">
             <div>
-              <h3 className="font-display font-semibold text-base">
+              <h3 className="font-display font-semibold text-base text-slate-900">
                 Active Flight Sectors
               </h3>
-              <p className="text-xs text-slate-300 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Real-time seat availability across scheduled routes
               </p>
             </div>
             <button
               onClick={() => navigate('/SegmentManagement')}
-              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-xs font-medium text-[#1B3664] transition cursor-pointer"
             >
               View All Sectors &rarr;
             </button>
@@ -623,11 +609,11 @@ export default function Dashboard() {
                     <div
                       key={seg.AirGroupSegmentID}
                       onClick={() => navigate('/FlightPOS')}
-                      className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 hover:border-[#1B3664]/50 hover:bg-white transition cursor-pointer"
+                      className="p-4 rounded-xl bg-slate-50/70 border border-slate-200 hover:border-slate-300 hover:bg-white transition cursor-pointer"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <span className="px-2.5 py-1 rounded-md bg-[#1B3664] text-white font-mono text-xs font-semibold">
+                          <span className="px-2.5 py-1 rounded-md bg-[#EFF6FF] text-[#1B3664] border border-blue-200 font-mono text-xs font-semibold">
                             {seg.FlightNumber}
                           </span>
                           <div>
@@ -664,9 +650,9 @@ export default function Dashboard() {
 
         {/* Right: Booking Status Breakdown & Sub-Agent Credit Standing */}
         <div className="lg:col-span-5 space-y-5">
-          <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm overflow-hidden">
-            <div className="px-5 py-3.5 bg-[#0F172A] text-white">
-              <h3 className="font-display font-semibold text-sm">
+          <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
+            <div className="px-5 py-3.5 bg-slate-100/80 border-b border-slate-200">
+              <h3 className="font-display font-semibold text-sm text-slate-900">
                 Reservation Status
               </h3>
             </div>
@@ -683,9 +669,9 @@ export default function Dashboard() {
                   {statusCounts.Approved}
                 </div>
               </div>
-              <div className="p-3.5 rounded-xl bg-[#1B3664] text-white border border-[#1B3664]">
-                <div className="text-xs font-medium text-slate-200">Ticket Issued</div>
-                <div className="text-2xl font-semibold font-display mt-1 text-white">
+              <div className="p-3.5 rounded-xl bg-[#EFF6FF] text-slate-900 border border-blue-200">
+                <div className="text-xs font-medium text-[#1B3664]">Ticket Issued</div>
+                <div className="text-2xl font-semibold font-display mt-1 text-[#1B3664]">
                   {statusCounts.Issued}
                 </div>
               </div>
@@ -704,14 +690,14 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200/90 shadow-sm overflow-hidden">
-            <div className="px-5 py-3.5 bg-[#0F172A] text-white flex items-center justify-between">
-              <h3 className="font-display font-semibold text-sm">
+          <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
+            <div className="px-5 py-3.5 bg-slate-100/80 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-display font-semibold text-sm text-slate-900">
                 Partner Agency Wallets
               </h3>
               <button
                 onClick={() => navigate('/ManageSubAgents')}
-                className="text-xs font-medium text-slate-200 hover:text-white cursor-pointer"
+                className="text-xs font-medium text-[#1B3664] hover:underline cursor-pointer"
               >
                 Manage All &rarr;
               </button>

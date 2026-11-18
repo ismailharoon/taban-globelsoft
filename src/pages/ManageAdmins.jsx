@@ -194,17 +194,17 @@ export default function ManageAdmins() {
       </div>
 
       {/* Admins Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-executive overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="bg-[#1D314F] text-white text-[11px] font-semibold uppercase tracking-wider">
-                <th className="py-3 px-4">Admin Name &amp; Role</th>
-                <th className="py-3 px-3">Login ID</th>
-                <th className="py-3 px-3">Assigned Module Access</th>
-                <th className="py-3 px-3">Status</th>
-                <th className="py-3 px-3">Created</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+              <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider">
+                <th className="py-3.5 px-4">Admin Name &amp; Role</th>
+                <th className="py-3.5 px-3">Login ID</th>
+                <th className="py-3.5 px-3">Assigned Module Access</th>
+                <th className="py-3.5 px-3">Status</th>
+                <th className="py-3.5 px-3">Created</th>
+                <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -327,28 +327,28 @@ export default function ManageAdmins() {
 
       {/* CREATE / EDIT ADMIN MODAL */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-xl w-full overflow-hidden">
-            <div className="bg-[#1D314F] text-white px-5 py-3.5 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="bg-slate-100 text-slate-900 border-b border-slate-200 px-5 py-3.5 flex items-center justify-between shrink-0">
               <div>
-                <h5 className="font-semibold text-sm">
+                <h5 className="font-semibold text-sm text-slate-900">
                   {editingAdmin
                     ? `Edit Admin - ${editingAdmin.FullName}`
                     : 'Create New Admin Account'}
                 </h5>
-                <p className="text-[11px] text-white/75">
+                <p className="text-xs text-slate-500">
                   Configure login credentials and select allowed portal modules
                 </p>
               </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-white/75 hover:text-white cursor-pointer"
+                className="text-slate-500 hover:text-slate-800 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="p-5 space-y-4 text-xs">
+            <form onSubmit={handleSave} className="p-5 space-y-4 text-xs overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block font-medium text-slate-700 mb-1">Full Name *</label>
@@ -457,7 +457,7 @@ export default function ManageAdmins() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {PERMISSION_ITEMS.map((item) => {
                       const checked = Boolean(form.Permissions[item.key]);
                       return (

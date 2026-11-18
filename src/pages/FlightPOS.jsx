@@ -511,11 +511,11 @@ export default function FlightPOS() {
 
   return (
     <div className="space-y-5">
-      {/* COMPACT HERO SEARCH BANNER - Taban Air Royal Navy */}
-      <div className="rounded-2xl bg-gradient-to-b from-[#0F172A] via-[#172847] to-[#1D314F] p-4 sm:p-6 shadow-md border border-slate-800 relative overflow-hidden">
+      {/* COMPACT HERO SEARCH BANNER - Clean Minimalist Light Card */}
+      <div className="rounded-2xl bg-gradient-to-b from-[#EFF6FF] to-slate-50 p-4 sm:p-6 shadow-xs border border-slate-200 relative overflow-hidden">
         {/* Top Trip Type Pills */}
         <div className="relative z-10 flex flex-col items-center text-center mb-4">
-          <div className="inline-flex items-center p-1 rounded-full bg-white/10 border border-white/15">
+          <div className="inline-flex items-center p-1 rounded-full bg-white border border-slate-200 shadow-2xs">
             {['Round Trip', 'One Way', 'Multi City'].map((t) => {
               const active = tripType === t;
               return (
@@ -530,8 +530,8 @@ export default function FlightPOS() {
                   }}
                   className={`px-4 sm:px-5 py-1.5 rounded-full text-xs font-medium transition cursor-pointer ${
                     active
-                      ? 'bg-white text-[#1B3664] shadow-xs font-semibold'
-                      : 'text-white/80 hover:text-white'
+                      ? 'bg-[#1E3A8A] text-white shadow-xs font-semibold'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   {t}
@@ -539,7 +539,7 @@ export default function FlightPOS() {
               );
             })}
           </div>
-          <p className="text-[11px] text-white/70 mt-2">
+          <p className="text-xs text-slate-600 mt-2">
             {tripType === 'Multi City'
               ? 'Multi-City Search: Add multiple sectors (e.g. KHI → IKA, MHD → KHI) and select flights for each leg'
               : 'Search & book directly across your active flight segments'}
@@ -549,7 +549,7 @@ export default function FlightPOS() {
         {/* MAIN WHITE SEARCH CARD */}
         <form
           onSubmit={handleSearchClick}
-          className="relative z-10 bg-white rounded-2xl p-4 sm:p-5 shadow-lg border border-slate-100 max-w-4xl mx-auto space-y-3.5 text-slate-800"
+          className="relative z-10 bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200 max-w-4xl mx-auto space-y-3.5 text-slate-800"
         >
           {tripType === 'Multi City' ? (
             /* MULTI CITY LEGS BUILDER */

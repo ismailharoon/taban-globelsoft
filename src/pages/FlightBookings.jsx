@@ -292,23 +292,23 @@ export default function FlightBookings() {
       </div>
 
       {/* Bookings Master-Detail Data Grid */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-executive overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="bg-[#1D314F] text-white text-[11px] font-semibold uppercase tracking-wider">
-                <th className="py-3 px-3 w-10"></th>
-                <th className="py-3 px-3">Booking / PNR</th>
-                <th className="py-3 px-3">Sub Agent & Channel</th>
-                <th className="py-3 px-3">Flight Sector</th>
-                <th className="py-3 px-3">Status</th>
-                <th className="py-3 px-3 text-center">Pax (A/C/I)</th>
-                <th className="py-3 px-3">Total Price</th>
-                <th className="py-3 px-3">Date / Time Limit</th>
-                <th className="py-3 px-4 text-right">Booking Actions</th>
+              <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider">
+                <th className="py-3.5 px-3 w-10"></th>
+                <th className="py-3.5 px-3">Booking / PNR</th>
+                <th className="py-3.5 px-3">Sub Agent & Channel</th>
+                <th className="py-3.5 px-3">Flight Sector</th>
+                <th className="py-3.5 px-3">Status</th>
+                <th className="py-3.5 px-3 text-center">Pax (A/C/I)</th>
+                <th className="py-3.5 px-3">Total Price</th>
+                <th className="py-3.5 px-3">Date / Time Limit</th>
+                <th className="py-3.5 px-4 text-right">Booking Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 text-xs">
+            <tbody className="divide-y divide-slate-200 text-sm">
               {filteredBookings.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-10 text-center text-slate-500">
