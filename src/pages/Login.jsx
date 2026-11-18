@@ -85,8 +85,7 @@ export default function Login() {
         <div
           className="absolute inset-0 bg-cover bg-center opacity-20"
           style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1600&q=80')"
+            backgroundImage: "url('/images/login-left.jpg')"
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/80 to-transparent" />
@@ -119,8 +118,7 @@ export default function Login() {
         <div
           className="absolute inset-0 bg-cover bg-center opacity-[0.07] pointer-events-none"
           style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1540339832862-474599807836?auto=format&fit=crop&w=1400&q=80')"
+            backgroundImage: "url('/images/login-right.jpg')"
           }}
         />
 
