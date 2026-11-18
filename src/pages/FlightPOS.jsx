@@ -18,7 +18,11 @@ import {
   Trash2,
   Printer
 } from 'lucide-react';
-import { usePortal, calculateSegmentPassengerTotal } from '../context/PortalContext';
+import {
+  usePortal,
+  calculateSegmentPassengerTotal,
+  isSegmentOpenForBooking
+} from '../context/PortalContext';
 import { formatCurrencyPKR, formatDateTime, formatShortDate } from '../utils/exporters';
 import TicketPrintModal from '../components/TicketPrintModal';
 import FlightDateCalendar from '../components/FlightDateCalendar';
@@ -170,6 +174,7 @@ export default function FlightPOS() {
   const getAvailableDatesForRoute = (depIata, arrIata) => {
     const dates = new Set();
     (segments || []).forEach((seg) => {
+      if (!isSegmentOpenForBooking(seg)) return;
       const avail = Number(seg.SeatsLeft ?? seg.TotalSeats) || 0;
       if (avail <= 0) return;
       if (
@@ -215,6 +220,7 @@ export default function FlightPOS() {
 
   const matchingSegments = useMemo(() => {
     return (segments || []).filter((seg) => {
+      if (!isSegmentOpenForBooking(seg)) return false;
       if (
         cabinClass !== 'All' &&
         (seg.FlightClass || 'Economy').toLowerCase() !== cabinClass.toLowerCase()

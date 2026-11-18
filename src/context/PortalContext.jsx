@@ -81,6 +81,17 @@ function loadLocalDb() {
   return fresh;
 }
 
+export function isSegmentOpenForBooking(seg, nowMs = Date.now()) {
+  if (!seg || !seg.DepartureDate) return true;
+  const datePart = String(seg.DepartureDate).slice(0, 10);
+  const parts = datePart.split('-').map(Number);
+  if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return true;
+  const [year, month, day] = parts;
+  // Cutoff: 1 day before flight date at 5:00 PM (17:00 local time)
+  const cutoffMs = new Date(year, month - 1, day - 1, 17, 0, 0, 0).getTime();
+  return nowMs < cutoffMs;
+}
+
 export function calculateSegmentPassengerTotal(
   seg,
   adults = 1,
@@ -922,8 +933,13 @@ export function PortalProvider({ children }) {
       );
     }
 
-    // Check live seat availability on each selected segment
+    // Check live seat availability and cutoff on each selected segment
     for (const seg of selectedSegments) {
+      if (isSubAgent && !isSegmentOpenForBooking(seg)) {
+        throw new Error(
+          `Booking closed for ${seg.FlightNumber} (${seg.DepartureIata} → ${seg.ArrivalIata}). Bookings close at 5:00 PM the day before departure.`
+        );
+      }
       const left = Number(seg.SeatsLeft) || 0;
       if (left < seatedNeeded) {
         setDbState(latestDb);
@@ -1273,13 +1289,175 @@ export function PortalProvider({ children }) {
     addToast('Booking Deleted Successfully.', 'info');
   };
 
+  const recalculateBookingFareAndWallet = (draft, booking, oldCounts) => {
+    const bookingIdx = (draft.bookings || []).findIndex(
+      (b) => b.AirGroupBookingID === booking.AirGroupBookingID
+    );
+    const fl = (draft.flights || []).find((f) => f.AirGroupID === booking.AirGroupID);
+    const segIds =
+      Array.isArray(booking.SegmentIDs) && booking.SegmentIDs.length > 0
+        ? booking.SegmentIDs
+        : booking.AirGroupSegmentID
+        ? [booking.AirGroupSegmentID]
+        : fl && Array.isArray(fl.SegmentIDs)
+        ? fl.SegmentIDs
+        : [];
+    const bookingSegments = segIds
+      .map((sid) => (draft.segments || []).find((s) => s.AirGroupSegmentID === sid))
+      .filter(Boolean);
+
+    const isRoundTrip = booking.TripType === 'Round Trip';
+    let oldCalcTotal = 0;
+    let newCalcTotal = 0;
+
+    bookingSegments.forEach((seg) => {
+      const priorBookings = (draft.bookings || []).filter((other, idx) => {
+        if (other.AirGroupBookingID === booking.AirGroupBookingID) return false;
+        if (bookingIdx !== -1 && idx < bookingIdx) return false;
+        if (
+          other.ApprovalStatus === 'Rejected' ||
+          other.ApprovalStatus === 'Ticket Void' ||
+          other.ApprovalStatus === 'Cancelled'
+        ) {
+          return false;
+        }
+        if (Array.isArray(other.SegmentIDs) && other.SegmentIDs.includes(seg.AirGroupSegmentID)) {
+          return true;
+        }
+        if (other.AirGroupSegmentID === seg.AirGroupSegmentID) return true;
+        const otherFl = (draft.flights || []).find((f) => f.AirGroupID === other.AirGroupID);
+        if (
+          otherFl &&
+          Array.isArray(otherFl.SegmentIDs) &&
+          otherFl.SegmentIDs.includes(seg.AirGroupSegmentID)
+        ) {
+          return true;
+        }
+        return false;
+      });
+
+      const priorBookedSeats = priorBookings.reduce(
+        (sum, b) => sum + (Number(b.AdultCount) || 0) + (Number(b.ChildCount) || 0),
+        0
+      );
+
+      const segWithPrior = { ...seg, BookedSeats: priorBookedSeats };
+      oldCalcTotal += calculateSegmentPassengerTotal(
+        segWithPrior,
+        oldCounts.adt,
+        oldCounts.cnn,
+        oldCounts.inf,
+        isRoundTrip
+      ).total;
+      newCalcTotal += calculateSegmentPassengerTotal(
+        segWithPrior,
+        booking.AdultCount,
+        booking.ChildCount,
+        booking.InfantCount,
+        isRoundTrip
+      ).total;
+    });
+
+    const oldTotalPrice = Number(booking.TotalPrice) || 0;
+    let newTotalPrice = oldTotalPrice;
+
+    if (oldCalcTotal > 0) {
+      if (oldTotalPrice === oldCalcTotal) {
+        newTotalPrice = newCalcTotal;
+      } else {
+        const delta = oldCalcTotal - newCalcTotal;
+        newTotalPrice = Math.max(0, oldTotalPrice - delta);
+      }
+    } else {
+      const oldSeated = oldCounts.adt + oldCounts.cnn;
+      const newSeated = booking.AdultCount + booking.ChildCount;
+      if (oldSeated > 0 && newSeated !== oldSeated) {
+        newTotalPrice = Math.max(0, Math.round((oldTotalPrice / oldSeated) * newSeated));
+      }
+    }
+
+    booking.TotalPrice = newTotalPrice;
+
+    // If ticket was already issued for a Sub-Agent, adjust agent wallet balance & SALE statement entry
+    if (
+      booking.ApprovalStatus === 'Ticket Issued' &&
+      booking.SubCompanyID &&
+      booking.SubCompanyID !== 'DIRECT' &&
+      newTotalPrice !== oldTotalPrice
+    ) {
+      const priceDiff = oldTotalPrice - newTotalPrice;
+      const ag = (draft.subAgents || []).find((a) => a.SubCompanyID === booking.SubCompanyID);
+      if (ag) {
+        ag.CreditLimitBalance = Math.max(0, (Number(ag.CreditLimitBalance) || 0) + priceDiff);
+      }
+      if (Array.isArray(draft.creditTransactions)) {
+        const saleTxIdx = draft.creditTransactions.findIndex(
+          (tx) =>
+            tx.SubCompanyID === booking.SubCompanyID &&
+            tx.ReferencePNR === booking.PNR &&
+            tx.Type === 'DEBIT'
+        );
+        if (saleTxIdx !== -1) {
+          draft.creditTransactions[saleTxIdx].Amount = newTotalPrice;
+          draft.creditTransactions[saleTxIdx].Description =
+            formatSaleTransactionDescription({
+              ...booking,
+              Segments: bookingSegments
+            }) || `PNR ${booking.PNR} ISSUED`;
+
+          // Recompute running balances for this agent's transactions in chronological order
+          let runningBal = null;
+          for (let i = 0; i < draft.creditTransactions.length; i++) {
+            const tx = draft.creditTransactions[i];
+            if (tx.SubCompanyID !== booking.SubCompanyID) continue;
+            if (runningBal === null) {
+              runningBal = Number(tx.PreviousBalance) || 0;
+            } else {
+              tx.PreviousBalance = runningBal;
+            }
+            const amt = Number(tx.Amount) || 0;
+            runningBal = tx.Type === 'CREDIT' ? runningBal + amt : runningBal - amt;
+            tx.CurrentBalance = runningBal;
+          }
+        }
+      }
+    }
+  };
+
   const updatePassenger = async (bookingId, passengerId, paxData) => {
     updateLocalDb((draft) => {
       const booking = draft.bookings.find((b) => b.AirGroupBookingID === bookingId);
       if (booking) {
+        const oldCounts = {
+          adt:
+            Number(booking.AdultCount) ||
+            (booking.Passengers || []).filter((p) => p.PassengerType === 'Adult').length,
+          cnn:
+            Number(booking.ChildCount) ||
+            (booking.Passengers || []).filter((p) => p.PassengerType === 'Child').length,
+          inf:
+            Number(booking.InfantCount) ||
+            (booking.Passengers || []).filter((p) => p.PassengerType === 'Infant').length
+        };
         const idx = (booking.Passengers || []).findIndex((p) => p.PassengerID === passengerId);
         if (idx !== -1) {
           booking.Passengers[idx] = { ...booking.Passengers[idx], ...paxData };
+        }
+        booking.AdultCount = (booking.Passengers || []).filter(
+          (p) => p.PassengerType === 'Adult'
+        ).length;
+        booking.ChildCount = (booking.Passengers || []).filter(
+          (p) => p.PassengerType === 'Child'
+        ).length;
+        booking.InfantCount = (booking.Passengers || []).filter(
+          (p) => p.PassengerType === 'Infant'
+        ).length;
+        if (
+          booking.AdultCount !== oldCounts.adt ||
+          booking.ChildCount !== oldCounts.cnn ||
+          booking.InfantCount !== oldCounts.inf
+        ) {
+          recalculateBookingFareAndWallet(draft, booking, oldCounts);
         }
       }
       return draft;
@@ -1288,17 +1466,39 @@ export function PortalProvider({ children }) {
   };
 
   const deletePassenger = async (bookingId, passengerId) => {
+    const targetBooking = (dbState.bookings || []).find((b) => b.AirGroupBookingID === bookingId);
+    if (targetBooking && (targetBooking.Passengers || []).length <= 1) {
+      addToast(
+        'Cannot remove the only passenger in a booking. Cancel or Void the booking instead.',
+        'error'
+      );
+      return;
+    }
     updateLocalDb((draft) => {
       const booking = draft.bookings.find((b) => b.AirGroupBookingID === bookingId);
-      if (booking) {
-        booking.Passengers = (booking.Passengers || []).filter((p) => p.PassengerID !== passengerId);
+      if (booking && (booking.Passengers || []).length > 1) {
+        const oldCounts = {
+          adt:
+            Number(booking.AdultCount) ||
+            (booking.Passengers || []).filter((p) => p.PassengerType === 'Adult').length,
+          cnn:
+            Number(booking.ChildCount) ||
+            (booking.Passengers || []).filter((p) => p.PassengerType === 'Child').length,
+          inf:
+            Number(booking.InfantCount) ||
+            (booking.Passengers || []).filter((p) => p.PassengerType === 'Infant').length
+        };
+        booking.Passengers = (booking.Passengers || []).filter(
+          (p) => p.PassengerID !== passengerId
+        );
         booking.AdultCount = booking.Passengers.filter((p) => p.PassengerType === 'Adult').length;
         booking.ChildCount = booking.Passengers.filter((p) => p.PassengerType === 'Child').length;
         booking.InfantCount = booking.Passengers.filter((p) => p.PassengerType === 'Infant').length;
+        recalculateBookingFareAndWallet(draft, booking, oldCounts);
       }
       return draft;
     });
-    addToast('Passenger Deleted Successfully.', 'info');
+    addToast('Passenger removed and booking total fare updated.', 'info');
   };
 
   // --- Flight Group mutations ---

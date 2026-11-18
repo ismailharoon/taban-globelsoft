@@ -30,13 +30,13 @@ const PERMISSION_ITEMS = [
   },
   {
     key: 'bookingActions',
-    label: 'Booking Actions (Approve / Issue / Void / Edit / Delete)',
-    desc: 'Approve, reject, issue e-tickets, void tickets, and edit/delete bookings or passengers'
+    label: 'Booking Actions (Approve / Issue / Void)',
+    desc: 'Approve, reject, issue e-tickets, and void tickets'
   },
   {
     key: 'segments',
     label: 'Routes & Seat Inventory',
-    desc: 'Create/edit flight segments, 3-slab pricing, PNR expiry, and Excel/Word manifests'
+    desc: 'Create/edit flight segments, 5-slab pricing, PNR expiry, and Excel/Word manifests'
   },
   {
     key: 'subAgents',
