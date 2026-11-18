@@ -131,16 +131,11 @@ export default function Login() {
         <div className="hidden lg:block" />
 
         <div className="relative z-10 w-full max-w-md mx-auto bg-white/95 backdrop-blur-xs rounded-2xl border border-slate-200/80 shadow-sm p-7 sm:p-9">
-          <div className="mb-7 flex items-center gap-3.5">
-            <BooklyLogo size={44} />
-            <div>
-              <h2 className="font-display font-semibold text-2xl text-slate-900 leading-tight">
-                Sign In
-              </h2>
-              <p className="text-sm text-slate-500 mt-0.5">
-                Enter your credentials to access the portal
-              </p>
-            </div>
+          <div className="mb-7">
+            <h2 className="font-display font-semibold text-2xl text-slate-900">Sign In</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Enter your credentials to access the portal
+            </p>
           </div>
 
           {errorMsg && (
