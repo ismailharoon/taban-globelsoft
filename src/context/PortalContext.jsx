@@ -916,9 +916,9 @@ export function PortalProvider({ children }) {
     const infants = Passengers.filter((p) => p.PassengerType === 'Infant').length;
     const seatedNeeded = adults + children;
 
-    if (isSubAgent && seatedNeeded > 9) {
+    if (isSubAgent && seatedNeeded > 10) {
       throw new Error(
-        'Sub-Agents can book a maximum of 9 passengers (Adults + Children) per booking.'
+        'Sub-Agents can book a maximum of 10 passengers (Adults + Children) per booking.'
       );
     }
 
@@ -1673,7 +1673,7 @@ export function PortalProvider({ children }) {
         : [DEFAULT_MASTER_ADMIN, ...currentList, newAdmin];
       return draft;
     });
-    addToast(`Admin "${newAdmin.FullName}" created successfully (Password Hashed).`, 'success');
+    addToast(`Admin "${newAdmin.FullName}" created successfully.`, 'success');
   };
 
   const updateAdminUser = async (adminId, payload) => {
@@ -1756,7 +1756,7 @@ export function PortalProvider({ children }) {
         draft.adminUsers = list;
         return draft;
       });
-      addToast('Password changed and hashed (SHA-256) successfully.', 'success');
+      addToast('Password updated successfully.', 'success');
       return;
     }
 

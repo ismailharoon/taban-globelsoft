@@ -900,7 +900,7 @@ export function downloadSegmentSlabReportExcel(segment, report) {
   const depIata = (segment?.DepartureIata || 'KHI').toUpperCase();
   const arrIata = (segment?.ArrivalIata || 'IKA').toUpperCase();
   const dateToken = formatDDMMMYY(segment?.DepartureDate, 'SECTOR');
-  const filename = `CFO_Slab_Report_${flightClean}_${depIata}-${arrIata}_${dateToken}.xlsx`;
+  const filename = `Slab_Report_${flightClean}_${depIata}-${arrIata}_${dateToken}.xlsx`;
 
   const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
   const sharedStrings = [];
@@ -934,7 +934,7 @@ export function downloadSegmentSlabReportExcel(segment, report) {
   // Row 1: Sector Header
   xmlRows.push(
     `<row r="${r}" ht="20" customHeight="1">${[
-      makeStringCell(`A${r}`, 2, `BOOKLY — CFO SECTOR SLAB REPORT`),
+      makeStringCell(`A${r}`, 2, `BOOKLY — SECTOR SLAB REPORT`),
       makeStringCell(`B${r}`, 2, ''),
       makeStringCell(`C${r}`, 2, ''),
       makeStringCell(`D${r}`, 2, ''),
@@ -1058,7 +1058,7 @@ export function downloadSegmentSlabReportExcel(segment, report) {
 
   const workbookXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <sheets><sheet name="CFO Slab Report" sheetId="1" r:id="rId1"/></sheets>
+  <sheets><sheet name="Slab Report" sheetId="1" r:id="rId1"/></sheets>
 </workbook>`;
 
   const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>

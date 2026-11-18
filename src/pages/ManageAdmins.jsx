@@ -9,7 +9,7 @@ import {
   Lock
 } from 'lucide-react';
 import { usePortal, ALL_ADMIN_PERMISSIONS } from '../context/PortalContext';
-import { isPasswordHashed, validateStrongPassword } from '../utils/security';
+import { validateStrongPassword } from '../utils/security';
 import ConfirmActionModal from '../components/ConfirmActionModal';
 
 const PERMISSION_ITEMS = [
@@ -200,7 +200,7 @@ export default function ManageAdmins() {
             <thead>
               <tr className="bg-[#1D314F] text-white text-[11px] font-semibold uppercase tracking-wider">
                 <th className="py-3 px-4">Admin Name &amp; Role</th>
-                <th className="py-3 px-3">Login ID &amp; Password</th>
+                <th className="py-3 px-3">Login ID</th>
                 <th className="py-3 px-3">Assigned Module Access</th>
                 <th className="py-3 px-3">Status</th>
                 <th className="py-3 px-3">Created</th>
@@ -236,17 +236,7 @@ export default function ManageAdmins() {
                       </div>
                     </td>
                     <td className="py-3 px-3 font-mono">
-                      <div className="font-semibold text-[#1B3664]">ID: {adm.LoginID}</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
-                        {isPasswordHashed(adm.PassCode) ? (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-sans text-[10px] font-semibold">
-                            <Lock className="w-2.5 h-2.5" />
-                            SHA-256 Hashed
-                          </span>
-                        ) : (
-                          <span>Pass: {adm.PassCode}</span>
-                        )}
-                      </div>
+                      <div className="font-semibold text-[#1B3664]">{adm.LoginID}</div>
                     </td>
                     <td className="py-3 px-3">
                       <div className="flex flex-wrap gap-1 max-w-md">
@@ -394,7 +384,7 @@ export default function ManageAdmins() {
                 </div>
                 <div>
                   <label className="block font-medium text-slate-700 mb-1">
-                    {editingAdmin ? 'New Password (optional — hashed on save)' : 'Password *'}
+                    {editingAdmin ? 'New Password (optional)' : 'Password *'}
                   </label>
                   <input
                     type="password"
@@ -403,7 +393,7 @@ export default function ManageAdmins() {
                     placeholder={
                       editingAdmin
                         ? 'Leave blank to keep current password'
-                        : '8+ chars, letters+numbers+special (e.g. Pass@1234)'
+                        : '8+ characters (letters, numbers & symbol)'
                     }
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono focus:border-[#1B3664] focus:outline-none"
                     required={!editingAdmin}

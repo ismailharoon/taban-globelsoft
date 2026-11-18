@@ -587,9 +587,6 @@ export default function Layout({ children }) {
               </button>
             </div>
             <form onSubmit={handlePasswordChangeSubmit} className="p-5 space-y-3.5 text-xs">
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600">
-                Signed in as <b className="text-[#1B3664] font-mono">{user?.LoginID}</b>. Your new password will be cryptographically hashed (Salted SHA-256) before saving.
-              </div>
               <div>
                 <label className="block font-medium text-slate-700 mb-1">
                   Current Password *
@@ -598,20 +595,20 @@ export default function Layout({ children }) {
                   type="password"
                   value={currentPass}
                   onChange={(e) => setCurrentPass(e.target.value)}
-                  placeholder="Enter your current password"
+                  placeholder="Enter current password"
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono focus:border-[#1B3664] focus:outline-none"
                   required
                 />
               </div>
               <div>
                 <label className="block font-medium text-slate-700 mb-1">
-                  New Strong Password (8+ chars, alphanumeric + 1 special char) *
+                  New Password *
                 </label>
                 <input
                   type="password"
                   value={newPass}
                   onChange={(e) => setNewPass(e.target.value)}
-                  placeholder="e.g. Pass@1234"
+                  placeholder="8+ characters (letters, numbers & symbol)"
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono focus:border-[#1B3664] focus:outline-none"
                   required
                 />
@@ -641,7 +638,7 @@ export default function Layout({ children }) {
                   type="submit"
                   className="px-5 py-2 rounded-lg bg-[#1B3664] hover:bg-[#0F172A] text-white font-semibold transition cursor-pointer"
                 >
-                  Update &amp; Hash Password
+                  Update Password
                 </button>
               </div>
             </form>

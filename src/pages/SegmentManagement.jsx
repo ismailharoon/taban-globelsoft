@@ -695,7 +695,7 @@ export default function SegmentManagement() {
                           <button
                             onClick={() => setSlabReportSegment(seg)}
                             className="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
-                            title="CFO 5-Slab Sector Sales & Revenue Report"
+                            title="Sector Slab Report"
                           >
                             <BarChart3 className="w-3.5 h-3.5" />
                             <span>Slab Report</span>
@@ -849,7 +849,7 @@ export default function SegmentManagement() {
         </div>
       )}
 
-      {/* CFO 5-SLAB SECTOR SALES & REVENUE REPORT MODAL */}
+      {/* SECTOR SLAB REPORT MODAL */}
       {slabReportSegment && (() => {
         const report = buildSegmentSlabReport(slabReportSegment, slabReportFilter);
         return (
@@ -860,7 +860,7 @@ export default function SegmentManagement() {
                   <h5 className="font-semibold text-sm flex items-center gap-2">
                     <BarChart3 className="w-4 h-4 text-amber-400" />
                     <span>
-                      CFO 5-Slab Sector Report — {slabReportSegment.FlightNumber} (
+                      Slab Report — {slabReportSegment.FlightNumber} (
                       {slabReportSegment.DepartureIata} &rarr; {slabReportSegment.ArrivalIata})
                     </span>
                   </h5>
@@ -899,7 +899,7 @@ export default function SegmentManagement() {
                     className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer"
                   >
                     <FileSpreadsheet className="w-3.5 h-3.5" />
-                    <span>Export CFO Excel (.xlsx)</span>
+                    <span>Export Excel (.xlsx)</span>
                   </button>
                   <button
                     onClick={() => setSlabReportSegment(null)}

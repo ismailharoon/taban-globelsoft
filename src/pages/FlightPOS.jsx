@@ -791,7 +791,7 @@ export default function FlightPOS() {
                 </span>
                 {isSubAgent && (
                   <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
-                    Max 9 (Adt+Chd): {adultsCount + childrenCount}/9
+                    Max 10 Seats: {adultsCount + childrenCount}/10
                   </span>
                 )}
               </div>
@@ -814,19 +814,19 @@ export default function FlightPOS() {
                   </span>
                   <button
                     type="button"
-                    disabled={isSubAgent && adultsCount + childrenCount >= 9}
+                    disabled={isSubAgent && adultsCount + childrenCount >= 10}
                     onClick={() =>
                       setAdultsCount((c) =>
-                        isSubAgent && c + childrenCount >= 9 ? c : c + 1
+                        isSubAgent && c + childrenCount >= 10 ? c : c + 1
                       )
                     }
                     title={
-                      isSubAgent && adultsCount + childrenCount >= 9
-                        ? 'Sub-Agent limit: Maximum 9 Adults + Children per booking'
+                      isSubAgent && adultsCount + childrenCount >= 10
+                        ? 'Maximum 10 Adults + Children per booking'
                         : 'Add Adult'
                     }
                     className={`w-7 h-7 rounded-full flex items-center justify-center transition ${
-                      isSubAgent && adultsCount + childrenCount >= 9
+                      isSubAgent && adultsCount + childrenCount >= 10
                         ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
                         : 'bg-slate-100 hover:bg-[#1B3664] text-[#1B3664] hover:text-white cursor-pointer'
                     }`}
@@ -854,19 +854,19 @@ export default function FlightPOS() {
                   </span>
                   <button
                     type="button"
-                    disabled={isSubAgent && adultsCount + childrenCount >= 9}
+                    disabled={isSubAgent && adultsCount + childrenCount >= 10}
                     onClick={() =>
                       setChildrenCount((c) =>
-                        isSubAgent && adultsCount + c >= 9 ? c : c + 1
+                        isSubAgent && adultsCount + c >= 10 ? c : c + 1
                       )
                     }
                     title={
-                      isSubAgent && adultsCount + childrenCount >= 9
-                        ? 'Sub-Agent limit: Maximum 9 Adults + Children per booking'
+                      isSubAgent && adultsCount + childrenCount >= 10
+                        ? 'Maximum 10 Adults + Children per booking'
                         : 'Add Child'
                     }
                     className={`w-7 h-7 rounded-full flex items-center justify-center transition ${
-                      isSubAgent && adultsCount + childrenCount >= 9
+                      isSubAgent && adultsCount + childrenCount >= 10
                         ? 'bg-slate-100 text-slate-300 cursor-not-allowed'
                         : 'bg-slate-100 hover:bg-[#1B3664] text-[#1B3664] hover:text-white cursor-pointer'
                     }`}
