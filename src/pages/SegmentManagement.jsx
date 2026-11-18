@@ -35,27 +35,41 @@ const INITIAL_SEGMENT_FORM = {
   ArrivalDate: '',
   TotalSeats: 120,
   PnrExpiryHours: 24,
-  Tier1Seats: 40,
+  Tier1Seats: 25,
   Tier1AdultPrice: 0,
   Tier1ChildPrice: 0,
   Tier1InfantPrice: 0,
   Tier1ReturnAdultPrice: 0,
   Tier1ReturnChildPrice: 0,
   Tier1ReturnInfantPrice: 0,
-  Tier2Seats: 50,
+  Tier2Seats: 25,
   Tier2AdultPrice: 0,
   Tier2ChildPrice: 0,
   Tier2InfantPrice: 0,
   Tier2ReturnAdultPrice: 0,
   Tier2ReturnChildPrice: 0,
   Tier2ReturnInfantPrice: 0,
-  Tier3Seats: 30,
+  Tier3Seats: 25,
   Tier3AdultPrice: 0,
   Tier3ChildPrice: 0,
   Tier3InfantPrice: 0,
   Tier3ReturnAdultPrice: 0,
   Tier3ReturnChildPrice: 0,
   Tier3ReturnInfantPrice: 0,
+  Tier4Seats: 25,
+  Tier4AdultPrice: 0,
+  Tier4ChildPrice: 0,
+  Tier4InfantPrice: 0,
+  Tier4ReturnAdultPrice: 0,
+  Tier4ReturnChildPrice: 0,
+  Tier4ReturnInfantPrice: 0,
+  Tier5Seats: 20,
+  Tier5AdultPrice: 0,
+  Tier5ChildPrice: 0,
+  Tier5InfantPrice: 0,
+  Tier5ReturnAdultPrice: 0,
+  Tier5ReturnChildPrice: 0,
+  Tier5ReturnInfantPrice: 0,
   FlightClass: 'Economy',
   FlightClassCode: 'Y',
   FlightTime: '02h 30m',
@@ -122,12 +136,19 @@ export default function SegmentManagement() {
     const hasTiers =
       (Number(seg.Tier1Seats) || 0) +
         (Number(seg.Tier2Seats) || 0) +
-        (Number(seg.Tier3Seats) || 0) >
+        (Number(seg.Tier3Seats) || 0) +
+        (Number(seg.Tier4Seats) || 0) +
+        (Number(seg.Tier5Seats) || 0) >
       0;
     const tot = Number(seg.TotalSeats) || 120;
-    const defT1 = hasTiers ? Number(seg.Tier1Seats) || 0 : Math.floor(tot / 3);
-    const defT2 = hasTiers ? Number(seg.Tier2Seats) || 0 : Math.floor(tot / 3);
-    const defT3 = hasTiers ? Number(seg.Tier3Seats) || 0 : Math.max(0, tot - defT1 - defT2);
+    const baseChunk = Math.floor(tot / 5);
+    const defT1 = hasTiers ? Number(seg.Tier1Seats) || 0 : baseChunk;
+    const defT2 = hasTiers ? Number(seg.Tier2Seats) || 0 : baseChunk;
+    const defT3 = hasTiers ? Number(seg.Tier3Seats) || 0 : baseChunk;
+    const defT4 = hasTiers ? Number(seg.Tier4Seats) || 0 : baseChunk;
+    const defT5 = hasTiers
+      ? Number(seg.Tier5Seats) || 0
+      : Math.max(0, tot - defT1 - defT2 - defT3 - defT4);
 
     setEditingId(seg.AirGroupSegmentID);
     setForm({
@@ -156,6 +177,20 @@ export default function SegmentManagement() {
       Tier3ReturnAdultPrice: seg.Tier3ReturnAdultPrice ?? seg.ReturnAdultPrice ?? 0,
       Tier3ReturnChildPrice: seg.Tier3ReturnChildPrice ?? seg.ReturnChildPrice ?? 0,
       Tier3ReturnInfantPrice: seg.Tier3ReturnInfantPrice ?? seg.ReturnInfantPrice ?? 0,
+      Tier4Seats: defT4,
+      Tier4AdultPrice: seg.Tier4AdultPrice ?? seg.Tier3AdultPrice ?? seg.AdultPrice ?? 0,
+      Tier4ChildPrice: seg.Tier4ChildPrice ?? seg.Tier3ChildPrice ?? seg.ChildPrice ?? 0,
+      Tier4InfantPrice: seg.Tier4InfantPrice ?? seg.Tier3InfantPrice ?? seg.InfantPrice ?? 0,
+      Tier4ReturnAdultPrice: seg.Tier4ReturnAdultPrice ?? seg.Tier3ReturnAdultPrice ?? seg.ReturnAdultPrice ?? 0,
+      Tier4ReturnChildPrice: seg.Tier4ReturnChildPrice ?? seg.Tier3ReturnChildPrice ?? seg.ReturnChildPrice ?? 0,
+      Tier4ReturnInfantPrice: seg.Tier4ReturnInfantPrice ?? seg.Tier3ReturnInfantPrice ?? seg.ReturnInfantPrice ?? 0,
+      Tier5Seats: defT5,
+      Tier5AdultPrice: seg.Tier5AdultPrice ?? seg.Tier4AdultPrice ?? seg.Tier3AdultPrice ?? seg.AdultPrice ?? 0,
+      Tier5ChildPrice: seg.Tier5ChildPrice ?? seg.Tier4ChildPrice ?? seg.Tier3ChildPrice ?? seg.ChildPrice ?? 0,
+      Tier5InfantPrice: seg.Tier5InfantPrice ?? seg.Tier4InfantPrice ?? seg.Tier3InfantPrice ?? seg.InfantPrice ?? 0,
+      Tier5ReturnAdultPrice: seg.Tier5ReturnAdultPrice ?? seg.Tier4ReturnAdultPrice ?? seg.Tier3ReturnAdultPrice ?? seg.ReturnAdultPrice ?? 0,
+      Tier5ReturnChildPrice: seg.Tier5ReturnChildPrice ?? seg.Tier4ReturnChildPrice ?? seg.Tier3ReturnChildPrice ?? seg.ReturnChildPrice ?? 0,
+      Tier5ReturnInfantPrice: seg.Tier5ReturnInfantPrice ?? seg.Tier4ReturnInfantPrice ?? seg.Tier3ReturnInfantPrice ?? seg.ReturnInfantPrice ?? 0,
       BaggageADT: seg.BaggageADT ?? seg.BaggageCountADT ?? '20',
       BaggageCNN: seg.BaggageCNN ?? seg.BaggageCountCNN ?? '20',
       BaggageINF: seg.BaggageINF ?? seg.BaggageCountINF ?? '0',
@@ -192,49 +227,35 @@ export default function SegmentManagement() {
     const tot = Math.max(0, Number(val) || 0);
     const t1 = Number(form.Tier1Seats) || 0;
     const t2 = Number(form.Tier2Seats) || 0;
-    const rem = Math.max(0, tot - t1 - t2);
+    const t3 = Number(form.Tier3Seats) || 0;
+    const t4 = Number(form.Tier4Seats) || 0;
+    const rem = Math.max(0, tot - t1 - t2 - t3 - t4);
     setForm((prev) => ({
       ...prev,
       TotalSeats: tot,
-      Tier3Seats: rem
+      Tier5Seats: rem
     }));
   };
 
-  const handleTier1SeatsChange = (val) => {
-    const t1 = Math.max(0, Number(val) || 0);
-    const t2 = Number(form.Tier2Seats) || 0;
-    const tot = Number(form.TotalSeats) || 0;
-    const rem = Math.max(0, tot - t1 - t2);
-    setForm((prev) => ({
-      ...prev,
-      Tier1Seats: t1,
-      Tier3Seats: rem,
-      TotalSeats: Math.max(tot, t1 + t2 + rem)
-    }));
-  };
-
-  const handleTier2SeatsChange = (val) => {
-    const t2 = Math.max(0, Number(val) || 0);
-    const t1 = Number(form.Tier1Seats) || 0;
-    const tot = Number(form.TotalSeats) || 0;
-    const rem = Math.max(0, tot - t1 - t2);
-    setForm((prev) => ({
-      ...prev,
-      Tier2Seats: t2,
-      Tier3Seats: rem,
-      TotalSeats: Math.max(tot, t1 + t2 + rem)
-    }));
-  };
-
-  const handleTier3SeatsChange = (val) => {
-    const t3 = Math.max(0, Number(val) || 0);
-    const t1 = Number(form.Tier1Seats) || 0;
-    const t2 = Number(form.Tier2Seats) || 0;
-    setForm((prev) => ({
-      ...prev,
-      Tier3Seats: t3,
-      TotalSeats: t1 + t2 + t3
-    }));
+  const handleTierSeatsChange = (tierNum, val) => {
+    const numVal = Math.max(0, Number(val) || 0);
+    setForm((prev) => {
+      const next = { ...prev, [`Tier${tierNum}Seats`]: numVal };
+      const t1 = Number(next.Tier1Seats) || 0;
+      const t2 = Number(next.Tier2Seats) || 0;
+      const t3 = Number(next.Tier3Seats) || 0;
+      const t4 = Number(next.Tier4Seats) || 0;
+      const t5 = Number(next.Tier5Seats) || 0;
+      if (tierNum < 5) {
+        const tot = Number(prev.TotalSeats) || 0;
+        const rem = Math.max(0, tot - t1 - t2 - t3 - t4);
+        next.Tier5Seats = rem;
+        next.TotalSeats = Math.max(tot, t1 + t2 + t3 + t4 + rem);
+      } else {
+        next.TotalSeats = t1 + t2 + t3 + t4 + t5;
+      }
+      return next;
+    });
   };
 
   const handleSaveSegment = async (e) => {
@@ -252,7 +273,10 @@ export default function SegmentManagement() {
     const t1 = Math.max(0, Number(form.Tier1Seats) || 0);
     const t2 = Math.max(0, Number(form.Tier2Seats) || 0);
     const t3 = Math.max(0, Number(form.Tier3Seats) || 0);
-    const totalSeats = t1 + t2 + t3 > 0 ? t1 + t2 + t3 : Number(form.TotalSeats) || 120;
+    const t4 = Math.max(0, Number(form.Tier4Seats) || 0);
+    const t5 = Math.max(0, Number(form.Tier5Seats) || 0);
+    const sumSlabs = t1 + t2 + t3 + t4 + t5;
+    const totalSeats = sumSlabs > 0 ? sumSlabs : Number(form.TotalSeats) || 120;
 
     const payload = {
       ...form,
@@ -264,6 +288,8 @@ export default function SegmentManagement() {
       Tier1Seats: t1,
       Tier2Seats: t2,
       Tier3Seats: t3,
+      Tier4Seats: t4,
+      Tier5Seats: t5,
       AdultPrice: Number(form.Tier1AdultPrice || form.AdultPrice) || 0,
       ChildPrice: Number(form.Tier1ChildPrice || form.ChildPrice) || 0,
       InfantPrice: Number(form.Tier1InfantPrice || form.InfantPrice) || 0,
@@ -431,10 +457,10 @@ export default function SegmentManagement() {
                         {seg.HasTiers && (
                           <div className="mt-1 text-[10px] font-sans text-slate-500">
                             <span className="inline-block px-1.5 py-0.5 rounded bg-[#1B3664]/10 text-[#1B3664] font-semibold">
-                              Active: Tier {seg.ActiveTier} ({seg.ActiveTierSeatsLeft} left)
+                              Active: Slab {seg.ActiveTier} ({seg.ActiveTierSeatsLeft} left)
                             </span>
                             <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                              Slabs: {seg.Tier1Seats}/{seg.Tier2Seats}/{seg.Tier3Seats}
+                              Slabs: {seg.Tier1Seats || 0}/{seg.Tier2Seats || 0}/{seg.Tier3Seats || 0}/{seg.Tier4Seats || 0}/{seg.Tier5Seats || 0}
                             </div>
                           </div>
                         )}
@@ -447,8 +473,8 @@ export default function SegmentManagement() {
                           Return: {formatCurrencyPKR(Number(seg.ReturnAdultPrice) > 0 ? seg.ReturnAdultPrice : seg.AdultPrice)}
                         </div>
                         {seg.HasTiers ? (
-                          <div className="text-[10px] text-slate-500 mt-0.5">
-                            T1: {formatCurrencyPKR(seg.Tier1AdultPrice)} | T2: {formatCurrencyPKR(seg.Tier2AdultPrice)} | T3: {formatCurrencyPKR(seg.Tier3AdultPrice)}
+                          <div className="text-[10px] text-slate-500 mt-0.5 leading-snug">
+                            S1: {formatCurrencyPKR(seg.Tier1AdultPrice)} | S2: {formatCurrencyPKR(seg.Tier2AdultPrice)} | S3: {formatCurrencyPKR(seg.Tier3AdultPrice)} | S4: {formatCurrencyPKR(seg.Tier4AdultPrice ?? seg.Tier3AdultPrice)} | S5: {formatCurrencyPKR(seg.Tier5AdultPrice ?? seg.Tier3AdultPrice)}
                           </div>
                         ) : (
                           <div className="text-slate-500">
@@ -892,345 +918,156 @@ export default function SegmentManagement() {
                 </div>
               </div>
 
-              {/* Row 4: 3-Tier Dynamic Seat & Price Division (Runtime Slabs) */}
+              {/* Row 4: 5-Slab Dynamic Seat & Price Division (Runtime Slabs) */}
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5">
-                {/* TIER 1: STARTING SEATS */}
-                <div className="p-3 rounded-lg bg-white border border-slate-200 space-y-2.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1B3664]">
-                      <span className="px-2 py-0.5 rounded bg-[#1B3664] text-white font-mono text-[10px]">
-                        SLAB 1
-                      </span>
-                      Starting Seats (First Tier)
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <label className="text-[11px] font-semibold text-slate-700">
-                        Slab 1 Seats:
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max={form.TotalSeats}
-                        value={form.Tier1Seats}
-                        onChange={(e) => handleTier1SeatsChange(e.target.value)}
-                        className="w-24 px-2.5 py-1 rounded-lg border border-[#1B3664] bg-slate-50 font-mono font-bold text-xs text-[#1B3664] focus:outline-none"
-                      />
+                {[
+                  { num: 1, title: 'Starting Seats (Slab 1)', badgeBg: 'bg-[#1B3664]' },
+                  { num: 2, title: 'Second Tier Seats (Slab 2)', badgeBg: 'bg-teal-700' },
+                  { num: 3, title: 'Third Tier Seats (Slab 3)', badgeBg: 'bg-amber-600' },
+                  { num: 4, title: 'Fourth Tier Seats (Slab 4)', badgeBg: 'bg-orange-600' },
+                  { num: 5, title: 'Remaining Seats (Slab 5 — Final Tier)', badgeBg: 'bg-rose-600' }
+                ].map((slab) => {
+                  const pfx = `Tier${slab.num}`;
+                  return (
+                    <div
+                      key={slab.num}
+                      className="p-3 rounded-lg bg-white border border-slate-200 space-y-2.5"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1B3664]">
+                          <span
+                            className={`px-2 py-0.5 rounded ${slab.badgeBg} text-white font-mono text-[10px]`}
+                          >
+                            SLAB {slab.num}
+                          </span>
+                          {slab.title}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <label className="text-[11px] font-semibold text-slate-700">
+                            Slab {slab.num} Seats:
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={form[`${pfx}Seats`]}
+                            onChange={(e) => handleTierSeatsChange(slab.num, e.target.value)}
+                            className="w-24 px-2.5 py-1 rounded-lg border border-slate-300 bg-slate-50 font-mono font-bold text-xs text-[#1B3664] focus:border-[#1B3664] focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-[#1B3664] mb-1">
+                            1-Way Adult (PKR)
+                          </label>
+                          <input
+                            type="number"
+                            value={form[`${pfx}AdultPrice`]}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              setForm((prev) => ({
+                                ...prev,
+                                [`${pfx}AdultPrice`]: v,
+                                ...(slab.num === 1 ? { AdultPrice: v } : {})
+                              }));
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-[#1B3664] mb-1">
+                            1-Way Child (PKR)
+                          </label>
+                          <input
+                            type="number"
+                            value={form[`${pfx}ChildPrice`]}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              setForm((prev) => ({
+                                ...prev,
+                                [`${pfx}ChildPrice`]: v,
+                                ...(slab.num === 1 ? { ChildPrice: v } : {})
+                              }));
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-[#1B3664] mb-1">
+                            1-Way Infant (PKR)
+                          </label>
+                          <input
+                            type="number"
+                            value={form[`${pfx}InfantPrice`]}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              setForm((prev) => ({
+                                ...prev,
+                                [`${pfx}InfantPrice`]: v,
+                                ...(slab.num === 1 ? { InfantPrice: v } : {})
+                              }));
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-emerald-700 mb-1">
+                            Return Adult (PKR)
+                          </label>
+                          <input
+                            type="number"
+                            value={form[`${pfx}ReturnAdultPrice`]}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              setForm((prev) => ({
+                                ...prev,
+                                [`${pfx}ReturnAdultPrice`]: v,
+                                ...(slab.num === 1 ? { ReturnAdultPrice: v } : {})
+                              }));
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 font-mono text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-emerald-700 mb-1">
+                            Return Child (PKR)
+                          </label>
+                          <input
+                            type="number"
+                            value={form[`${pfx}ReturnChildPrice`]}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              setForm((prev) => ({
+                                ...prev,
+                                [`${pfx}ReturnChildPrice`]: v,
+                                ...(slab.num === 1 ? { ReturnChildPrice: v } : {})
+                              }));
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 font-mono text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-emerald-700 mb-1">
+                            Return Infant (PKR)
+                          </label>
+                          <input
+                            type="number"
+                            value={form[`${pfx}ReturnInfantPrice`]}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              setForm((prev) => ({
+                                ...prev,
+                                [`${pfx}ReturnInfantPrice`]: v,
+                                ...(slab.num === 1 ? { ReturnInfantPrice: v } : {})
+                              }));
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 font-mono text-xs"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
-                    <div>
-                      <label className="block text-[10px] font-semibold text-[#1B3664] mb-1">
-                        1-Way Adult (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier1AdultPrice}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            Tier1AdultPrice: Number(e.target.value),
-                            AdultPrice: Number(e.target.value)
-                          })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-[#1B3664] mb-1">
-                        1-Way Child (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier1ChildPrice}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            Tier1ChildPrice: Number(e.target.value),
-                            ChildPrice: Number(e.target.value)
-                          })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-[#1B3664] mb-1">
-                        1-Way Infant (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier1InfantPrice}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            Tier1InfantPrice: Number(e.target.value),
-                            InfantPrice: Number(e.target.value)
-                          })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-emerald-700 mb-1">
-                        Return Adult (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier1ReturnAdultPrice}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            Tier1ReturnAdultPrice: Number(e.target.value),
-                            ReturnAdultPrice: Number(e.target.value)
-                          })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-emerald-700 mb-1">
-                        Return Child (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier1ReturnChildPrice}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            Tier1ReturnChildPrice: Number(e.target.value),
-                            ReturnChildPrice: Number(e.target.value)
-                          })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-emerald-700 mb-1">
-                        Return Infant (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier1ReturnInfantPrice}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            Tier1ReturnInfantPrice: Number(e.target.value),
-                            ReturnInfantPrice: Number(e.target.value)
-                          })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 font-mono text-xs"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* TIER 2: NEXT SEATS */}
-                <div className="p-3 rounded-lg bg-white border border-slate-200 space-y-2.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1B3664]">
-                      <span className="px-2 py-0.5 rounded bg-amber-600 text-white font-mono text-[10px]">
-                        SLAB 2
-                      </span>
-                      Next Seats (Second Tier)
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <label className="text-[11px] font-semibold text-slate-700">
-                        Slab 2 Seats:
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max={Math.max(0, Number(form.TotalSeats || 0) - Number(form.Tier1Seats || 0))}
-                        value={form.Tier2Seats}
-                        onChange={(e) => handleTier2SeatsChange(e.target.value)}
-                        className="w-24 px-2.5 py-1 rounded-lg border border-amber-500 bg-amber-50/40 font-mono font-bold text-xs text-amber-900 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
-                    <div>
-                      <label className="block text-[10px] font-semibold text-[#1B3664] mb-1">
-                        1-Way Adult (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier2AdultPrice}
-                        onChange={(e) =>
-                          setForm({ ...form, Tier2AdultPrice: Number(e.target.value) })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-[#1B3664] mb-1">
-                        1-Way Child (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier2ChildPrice}
-                        onChange={(e) =>
-                          setForm({ ...form, Tier2ChildPrice: Number(e.target.value) })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-[#1B3664] mb-1">
-                        1-Way Infant (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier2InfantPrice}
-                        onChange={(e) =>
-                          setForm({ ...form, Tier2InfantPrice: Number(e.target.value) })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-emerald-700 mb-1">
-                        Return Adult (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier2ReturnAdultPrice}
-                        onChange={(e) =>
-                          setForm({ ...form, Tier2ReturnAdultPrice: Number(e.target.value) })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-emerald-700 mb-1">
-                        Return Child (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier2ReturnChildPrice}
-                        onChange={(e) =>
-                          setForm({ ...form, Tier2ReturnChildPrice: Number(e.target.value) })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-emerald-700 mb-1">
-                        Return Infant (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier2ReturnInfantPrice}
-                        onChange={(e) =>
-                          setForm({ ...form, Tier2ReturnInfantPrice: Number(e.target.value) })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 font-mono text-xs"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* TIER 3: REMAINING SEATS */}
-                <div className="p-3 rounded-lg bg-white border border-slate-200 space-y-2.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#1B3664]">
-                      <span className="px-2 py-0.5 rounded bg-rose-600 text-white font-mono text-[10px]">
-                        SLAB 3
-                      </span>
-                      Remaining Seats (Final Tier)
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <label className="text-[11px] font-semibold text-slate-700">
-                        Slab 3 Seats:
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={form.Tier3Seats}
-                        onChange={(e) => handleTier3SeatsChange(e.target.value)}
-                        className="w-24 px-2.5 py-1 rounded-lg border border-rose-500 bg-rose-50/40 font-mono font-bold text-xs text-rose-900 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
-                    <div>
-                      <label className="block text-[10px] font-semibold text-[#1B3664] mb-1">
-                        1-Way Adult (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier3AdultPrice}
-                        onChange={(e) =>
-                          setForm({ ...form, Tier3AdultPrice: Number(e.target.value) })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-[#1B3664] mb-1">
-                        1-Way Child (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier3ChildPrice}
-                        onChange={(e) =>
-                          setForm({ ...form, Tier3ChildPrice: Number(e.target.value) })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-[#1B3664] mb-1">
-                        1-Way Infant (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier3InfantPrice}
-                        onChange={(e) =>
-                          setForm({ ...form, Tier3InfantPrice: Number(e.target.value) })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-emerald-700 mb-1">
-                        Return Adult (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier3ReturnAdultPrice}
-                        onChange={(e) =>
-                          setForm({ ...form, Tier3ReturnAdultPrice: Number(e.target.value) })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-emerald-700 mb-1">
-                        Return Child (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier3ReturnChildPrice}
-                        onChange={(e) =>
-                          setForm({ ...form, Tier3ReturnChildPrice: Number(e.target.value) })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 font-mono text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-emerald-700 mb-1">
-                        Return Infant (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        value={form.Tier3ReturnInfantPrice}
-                        onChange={(e) =>
-                          setForm({ ...form, Tier3ReturnInfantPrice: Number(e.target.value) })
-                        }
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 font-mono text-xs"
-                      />
-                    </div>
-                  </div>
-                </div>
+                  );
+                })}
 
                 {/* Supplier Fares */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200">

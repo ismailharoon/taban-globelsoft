@@ -97,7 +97,10 @@ export function calculateSegmentPassengerTotal(
   const t1 = Number(seg.Tier1Seats) || 0;
   const t2 = Number(seg.Tier2Seats) || 0;
   const t3 = Number(seg.Tier3Seats) || 0;
-  const hasTiers = t1 + t2 + t3 > 0;
+  const t4 = Number(seg.Tier4Seats) || 0;
+  const t5 = Number(seg.Tier5Seats) || 0;
+  const tierSeats = [t1, t2, t3, t4, t5];
+  const hasTiers = tierSeats.reduce((a, b) => a + b, 0) > 0;
 
   const getTierFares = (tierNum) => {
     if (!hasTiers) {
@@ -133,9 +136,17 @@ export function calculateSegmentPassengerTotal(
 
   const getTierForSeatIndex = (seatIdx) => {
     if (!hasTiers) return 1;
-    if (t1 > 0 && seatIdx < t1) return 1;
-    if (t2 > 0 && seatIdx < t1 + t2) return 2;
-    return 3;
+    let cum = 0;
+    for (let k = 0; k < 5; k++) {
+      cum += tierSeats[k];
+      if (tierSeats[k] > 0 && seatIdx < cum) {
+        return k + 1;
+      }
+    }
+    for (let k = 4; k >= 0; k--) {
+      if (tierSeats[k] > 0) return k + 1;
+    }
+    return 1;
   };
 
   const startBooked = Number(seg.BookedSeats) || 0;
@@ -236,14 +247,23 @@ function computeEnriched(db) {
     const t1Seats = Number(s.Tier1Seats) || 0;
     const t2Seats = Number(s.Tier2Seats) || 0;
     const t3Seats = Number(s.Tier3Seats) || 0;
-    const hasTiers = t1Seats + t2Seats + t3Seats > 0;
+    const t4Seats = Number(s.Tier4Seats) || 0;
+    const t5Seats = Number(s.Tier5Seats) || 0;
+    const tierSeatsArr = [t1Seats, t2Seats, t3Seats, t4Seats, t5Seats];
+    const sumTierSeats = tierSeatsArr.reduce((a, b) => a + b, 0);
+    const hasTiers = sumTierSeats > 0;
 
-    const totalSeats = hasTiers ? t1Seats + t2Seats + t3Seats : Number(s.TotalSeats) || 0;
+    const totalSeats = hasTiers ? sumTierSeats : Number(s.TotalSeats) || 0;
     const seatsLeft = Math.max(0, totalSeats - bookedSeats);
 
-    const tier1Left = Math.max(0, t1Seats - bookedSeats);
-    const tier2Left = Math.max(0, Math.min(t2Seats, t1Seats + t2Seats - bookedSeats));
-    const tier3Left = Math.max(0, Math.min(t3Seats, t1Seats + t2Seats + t3Seats - bookedSeats));
+    const tierLeftArr = [];
+    let cumSeats = 0;
+    for (let k = 0; k < 5; k++) {
+      const cap = tierSeatsArr[k];
+      cumSeats += cap;
+      const leftInTier = Math.max(0, Math.min(cap, cumSeats - bookedSeats));
+      tierLeftArr.push(leftInTier);
+    }
 
     let activeTier = 1;
     let activeTierSeatsLeft = seatsLeft;
@@ -255,34 +275,34 @@ function computeEnriched(db) {
     let returnInfantPrice = Number(s.ReturnInfantPrice) || 0;
 
     if (hasTiers) {
-      if (t1Seats > 0 && bookedSeats < t1Seats) {
-        activeTier = 1;
-        activeTierSeatsLeft = tier1Left;
-        adultPrice = Number(s.Tier1AdultPrice ?? s.AdultPrice) || 0;
-        childPrice = Number(s.Tier1ChildPrice ?? s.ChildPrice) || 0;
-        infantPrice = Number(s.Tier1InfantPrice ?? s.InfantPrice) || 0;
-        returnAdultPrice = Number(s.Tier1ReturnAdultPrice ?? s.ReturnAdultPrice) || 0;
-        returnChildPrice = Number(s.Tier1ReturnChildPrice ?? s.ReturnChildPrice) || 0;
-        returnInfantPrice = Number(s.Tier1ReturnInfantPrice ?? s.ReturnInfantPrice) || 0;
-      } else if (t2Seats > 0 && bookedSeats < t1Seats + t2Seats) {
-        activeTier = 2;
-        activeTierSeatsLeft = tier2Left;
-        adultPrice = Number(s.Tier2AdultPrice ?? s.AdultPrice) || 0;
-        childPrice = Number(s.Tier2ChildPrice ?? s.ChildPrice) || 0;
-        infantPrice = Number(s.Tier2InfantPrice ?? s.InfantPrice) || 0;
-        returnAdultPrice = Number(s.Tier2ReturnAdultPrice ?? s.ReturnAdultPrice) || 0;
-        returnChildPrice = Number(s.Tier2ReturnChildPrice ?? s.ReturnChildPrice) || 0;
-        returnInfantPrice = Number(s.Tier2ReturnInfantPrice ?? s.ReturnInfantPrice) || 0;
-      } else {
-        activeTier = 3;
-        activeTierSeatsLeft = tier3Left;
-        adultPrice = Number(s.Tier3AdultPrice ?? s.AdultPrice) || 0;
-        childPrice = Number(s.Tier3ChildPrice ?? s.ChildPrice) || 0;
-        infantPrice = Number(s.Tier3InfantPrice ?? s.InfantPrice) || 0;
-        returnAdultPrice = Number(s.Tier3ReturnAdultPrice ?? s.ReturnAdultPrice) || 0;
-        returnChildPrice = Number(s.Tier3ReturnChildPrice ?? s.ReturnChildPrice) || 0;
-        returnInfantPrice = Number(s.Tier3ReturnInfantPrice ?? s.ReturnInfantPrice) || 0;
+      let chosenTier = 1;
+      let runCap = 0;
+      let foundOpen = false;
+      for (let k = 0; k < 5; k++) {
+        runCap += tierSeatsArr[k];
+        if (tierSeatsArr[k] > 0 && bookedSeats < runCap) {
+          chosenTier = k + 1;
+          foundOpen = true;
+          break;
+        }
       }
+      if (!foundOpen) {
+        for (let k = 4; k >= 0; k--) {
+          if (tierSeatsArr[k] > 0) {
+            chosenTier = k + 1;
+            break;
+          }
+        }
+      }
+      activeTier = chosenTier;
+      activeTierSeatsLeft = tierLeftArr[chosenTier - 1] ?? 0;
+      const pfx = `Tier${chosenTier}`;
+      adultPrice = Number(s[`${pfx}AdultPrice`] ?? s.AdultPrice) || 0;
+      childPrice = Number(s[`${pfx}ChildPrice`] ?? s.ChildPrice) || 0;
+      infantPrice = Number(s[`${pfx}InfantPrice`] ?? s.InfantPrice) || 0;
+      returnAdultPrice = Number(s[`${pfx}ReturnAdultPrice`] ?? s.ReturnAdultPrice) || 0;
+      returnChildPrice = Number(s[`${pfx}ReturnChildPrice`] ?? s.ReturnChildPrice) || 0;
+      returnInfantPrice = Number(s[`${pfx}ReturnInfantPrice`] ?? s.ReturnInfantPrice) || 0;
     }
 
     return {
@@ -294,9 +314,11 @@ function computeEnriched(db) {
       HasTiers: hasTiers,
       ActiveTier: activeTier,
       ActiveTierSeatsLeft: activeTierSeatsLeft,
-      Tier1Left: tier1Left,
-      Tier2Left: tier2Left,
-      Tier3Left: tier3Left,
+      Tier1Left: tierLeftArr[0],
+      Tier2Left: tierLeftArr[1],
+      Tier3Left: tierLeftArr[2],
+      Tier4Left: tierLeftArr[3],
+      Tier5Left: tierLeftArr[4],
       AdultPrice: adultPrice,
       ChildPrice: childPrice,
       InfantPrice: infantPrice,
