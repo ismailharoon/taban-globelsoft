@@ -296,10 +296,10 @@ export default function FlightBookings() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider">
+              <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider whitespace-nowrap">
                 <th className="py-3.5 px-3 w-10"></th>
                 <th className="py-3.5 px-3">Booking / PNR</th>
-                <th className="py-3.5 px-3">Sub Agent & Channel</th>
+                <th className="py-3.5 px-3">Sub Agent &amp; Channel</th>
                 <th className="py-3.5 px-3">Flight Sector</th>
                 <th className="py-3.5 px-3">Status</th>
                 <th className="py-3.5 px-3 text-center">Pax (A/C/I)</th>
@@ -352,7 +352,7 @@ export default function FlightBookings() {
                           isExpanded ? 'bg-slate-50/80' : ''
                         }`}
                       >
-                        <td className="py-3 px-3 text-center">
+                        <td className="py-3.5 px-3 text-center whitespace-nowrap">
                           <button
                             onClick={() => toggleExpand(booking.AirGroupBookingID)}
                             className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#1B3664] text-[#1B3664] hover:text-white transition cursor-pointer"
@@ -366,48 +366,45 @@ export default function FlightBookings() {
                           </button>
                         </td>
 
-                        <td className="py-3 px-3">
+                        <td className="py-3.5 px-3 whitespace-nowrap">
                           <div className="font-mono font-semibold text-sm text-[#1B3664]">
                             {booking.PNR}
                           </div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-xs text-slate-500">
                             ID: {booking.AirGroupBookingID}
                           </div>
                         </td>
 
-                        <td className="py-3 px-3">
-                          <div className="font-semibold text-slate-900 max-w-[200px] truncate">
+                        <td className="py-3.5 px-3 whitespace-nowrap">
+                          <div className="font-semibold text-slate-900 max-w-[175px] truncate">
                             {booking.SubCompanyName}
                           </div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-xs text-slate-500 max-w-[175px] truncate">
                             {booking.BookingChannelName || 'B2B Agent Portal'}
-                          </div>
-                          <div className="text-[11px] text-[#1B3664]">
-                            {booking.EmailAddress}
                           </div>
                         </td>
 
-                        <td className="py-3 px-3">
-                          <div className="font-semibold text-slate-900 max-w-[220px] truncate">
+                        <td className="py-3.5 px-3 whitespace-nowrap">
+                          <div className="font-semibold text-slate-900 max-w-[190px] truncate">
                             {booking.FlightTitle}
                           </div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-xs text-slate-500">
                             {booking.ValidatingCarrierName} • {booking.TripType}
                           </div>
                         </td>
 
-                        <td className="py-3 px-3">
+                        <td className="py-3.5 px-3 whitespace-nowrap">
                           {renderStatusBadge(booking.ApprovalStatus)}
                           {booking.ApprovalLoginID && (
-                            <div className="text-[10px] text-slate-500 mt-1">
-                              By <span className="font-medium">{booking.ApprovalLoginID}</span> ({booking.ApprovalDateTime})
+                            <div className="text-[11px] text-slate-500 mt-1">
+                              By <span className="font-medium">{booking.ApprovalLoginID}</span>
                             </div>
                           )}
                           {(booking.ApprovalStatus === 'Ticket Void' ||
                             booking.ApprovalStatus === 'Cancelled') &&
                             booking.VoidReason && (
                               <div
-                                className="text-[10px] text-red-700 font-medium mt-1 max-w-[180px] truncate"
+                                className="text-[11px] text-red-700 font-medium mt-1 max-w-[150px] truncate"
                                 title={booking.VoidReason}
                               >
                                 {booking.VoidReason}
@@ -415,42 +412,42 @@ export default function FlightBookings() {
                             )}
                         </td>
 
-                        <td className="py-3 px-3 text-center">
-                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-50 border border-slate-200 font-mono font-medium text-[11px]">
+                        <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-50 border border-slate-200 font-mono font-medium text-xs">
                             <span title="Adults">{booking.AdultCount || 0}A</span> /
                             <span title="Children">{booking.ChildCount || 0}C</span> /
                             <span title="Infants">{booking.InfantCount || 0}I</span>
                           </div>
-                          <div className="text-[10px] text-slate-500 mt-0.5">
+                          <div className="text-[11px] text-slate-500 mt-0.5">
                             {(booking.Passengers || []).length} Pax Total
                           </div>
                         </td>
 
-                        <td className="py-3 px-3 font-mono font-semibold text-xs text-[#1B3664]">
+                        <td className="py-3.5 px-3 font-mono font-semibold text-sm text-[#1B3664] whitespace-nowrap">
                           {formatCurrencyPKR(booking.TotalPrice)}
                         </td>
 
-                        <td className="py-3 px-3">
+                        <td className="py-3.5 px-3 whitespace-nowrap">
                           {/* Do NOT show BookingTimeLimit once Ticket Issued */}
                           {!isIssued && booking.BookingTimeLimit && booking.BookingTimeLimit !== '-' ? (
-                            <div className="flex items-center gap-1 text-[11px] font-medium text-slate-800">
-                              <Clock className="w-3.5 h-3.5 text-[#1B3664]" />
+                            <div className="flex items-center gap-1 text-xs font-medium text-slate-800">
+                              <Clock className="w-3.5 h-3.5 text-[#1B3664] shrink-0" />
                               <span>{booking.BookingTimeLimit}</span>
                             </div>
                           ) : (
-                            <div className="text-[11px] font-medium text-emerald-700">
-                              {isIssued ? 'Ticketed (No Time Limit)' : '-'}
+                            <div className="text-xs font-medium text-emerald-700">
+                              {isIssued ? 'Ticketed' : '-'}
                             </div>
                           )}
-                          <div className="text-[10px] text-slate-400 mt-0.5">
+                          <div className="text-[11px] text-slate-400 mt-0.5">
                             {isIssued
-                              ? `Issue Date: ${booking.ApprovalDateTime || booking.TimeStamp}`
-                              : `Booking Date: ${booking.TimeStamp}`}
+                              ? booking.ApprovalDateTime || booking.TimeStamp
+                              : booking.TimeStamp}
                           </div>
                         </td>
 
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex flex-wrap items-center justify-end gap-1.5">
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center justify-end gap-1.5 whitespace-nowrap">
                             {canApprove && (
                               <button
                                 onClick={() =>
@@ -462,11 +459,11 @@ export default function FlightBookings() {
                                     action: () => approveBooking(booking.AirGroupBookingID)
                                   })
                                 }
-                                className="px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                                className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-medium text-xs inline-flex items-center gap-1 transition cursor-pointer"
                                 title="Approve Booking"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                                Approve
+                                <span>Approve</span>
                               </button>
                             )}
 
@@ -481,11 +478,11 @@ export default function FlightBookings() {
                                     action: () => rejectBooking(booking.AirGroupBookingID)
                                   })
                                 }
-                                className="px-2.5 py-1.5 rounded-lg bg-red-700 hover:bg-red-800 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                                className="px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-medium text-xs inline-flex items-center gap-1 transition cursor-pointer"
                                 title="Reject Booking"
                               >
                                 <XCircle className="w-3.5 h-3.5" />
-                                Reject
+                                <span>Reject</span>
                               </button>
                             )}
 
@@ -501,7 +498,7 @@ export default function FlightBookings() {
                                     action: () => issueTicket(booking.AirGroupBookingID)
                                   })
                                 }
-                                className={`px-2.5 py-1.5 rounded-lg font-medium text-[11px] flex items-center gap-1 transition ${
+                                className={`px-2.5 py-1.5 rounded-lg font-medium text-xs inline-flex items-center gap-1 transition ${
                                   hasEnoughBalance
                                     ? 'bg-[#1B3664] hover:bg-[#0F172A] text-white cursor-pointer'
                                     : 'bg-slate-200 text-slate-500 cursor-not-allowed opacity-70'
@@ -513,7 +510,7 @@ export default function FlightBookings() {
                                 }
                               >
                                 <Ticket className="w-3.5 h-3.5" />
-                                {hasEnoughBalance ? 'Issue Ticket' : 'Low Balance'}
+                                <span>{hasEnoughBalance ? 'Issue Ticket' : 'Low Balance'}</span>
                               </button>
                             )}
 
@@ -528,11 +525,11 @@ export default function FlightBookings() {
                                     action: () => cancelBooking(booking.AirGroupBookingID)
                                   })
                                 }
-                                className="px-2.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                                className="px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-medium text-xs inline-flex items-center gap-1 transition cursor-pointer"
                                 title="Cancel Booking"
                               >
                                 <X className="w-3.5 h-3.5" />
-                                Cancel Booking
+                                <span>Cancel</span>
                               </button>
                             )}
 
@@ -542,21 +539,21 @@ export default function FlightBookings() {
                                   setVoidTarget(booking);
                                   setVoidRemarks('');
                                 }}
-                                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-red-900 text-white font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 border border-slate-200 hover:border-red-200 font-medium text-xs inline-flex items-center gap-1 transition cursor-pointer"
                                 title="Void Ticket"
                               >
                                 <Ban className="w-3.5 h-3.5" />
-                                Void
+                                <span>Void</span>
                               </button>
                             )}
 
                             <button
                               onClick={() => setPrintBooking(booking)}
-                              className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-[#1B3664] text-[#1B3664] hover:text-white border border-slate-200 font-medium text-[11px] flex items-center gap-1 transition cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium text-xs inline-flex items-center gap-1 transition cursor-pointer"
                               title="Print Details / E-Ticket PDF"
                             >
                               <Printer className="w-3.5 h-3.5" />
-                              {isIssued ? 'Print Ticket' : 'Print Details'}
+                              <span>Print</span>
                             </button>
 
                             {canManageBookings && (
