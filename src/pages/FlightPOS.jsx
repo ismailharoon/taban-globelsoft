@@ -512,7 +512,7 @@ export default function FlightPOS() {
   return (
     <div className="space-y-5">
       {/* COMPACT HERO SEARCH BANNER - Taban Air Royal Navy */}
-      <div className="rounded-2xl bg-gradient-to-b from-[#0F172A] via-[#172847] to-[#1D314F] p-4 sm:p-6 shadow-md border border-slate-800 relative overflow-hidden">
+      <div className="rounded-2xl bg-gradient-to-b from-[#0F172A] via-[#172847] to-[#1D314F] p-4 sm:p-6 shadow-md border border-slate-800 relative">
         {/* Top Trip Type Pills */}
         <div className="relative z-10 flex flex-col items-center text-center mb-4">
           <div className="inline-flex items-center p-1 rounded-full bg-white/10 border border-white/15">

@@ -200,24 +200,6 @@ export default function Layout({ children }) {
           </button>
         </div>
 
-        {/* Active Operator Card */}
-        {!sidebarCollapsed && (
-          <div className="mx-3 mt-3 p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/70 flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#1B3664] flex items-center justify-center font-semibold text-xs text-white shrink-0">
-              {(user?.LoginID || 'TE').slice(0, 2).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-semibold text-white truncate">
-                {user?.FullName || 'Test Admin'}
-              </div>
-              <div className="text-[10px] text-slate-400 truncate flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                {user?.AccountType || 'Administrator'} • @{user?.LoginID || 'test'}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Navigation Links */}
         <nav className="flex-1 px-2.5 py-4 space-y-5 overflow-y-auto">
           {visibleNavSections.map((sec) => (
