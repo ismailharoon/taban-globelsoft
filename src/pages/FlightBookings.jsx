@@ -432,14 +432,14 @@ export default function FlightBookings() {
 
                         <td className="py-3 px-3">
                           {/* Do NOT show BookingTimeLimit once Ticket Issued */}
-                          {!isIssued && booking.BookingTimeLimit && booking.BookingTimeLimit !== '—' ? (
+                          {!isIssued && booking.BookingTimeLimit && booking.BookingTimeLimit !== '-' ? (
                             <div className="flex items-center gap-1 text-[11px] font-medium text-slate-800">
                               <Clock className="w-3.5 h-3.5 text-[#1B3664]" />
                               <span>{booking.BookingTimeLimit}</span>
                             </div>
                           ) : (
                             <div className="text-[11px] font-medium text-emerald-700">
-                              {isIssued ? 'Ticketed (No Time Limit)' : '—'}
+                              {isIssued ? 'Ticketed (No Time Limit)' : '-'}
                             </div>
                           )}
                           <div className="text-[10px] text-slate-400 mt-0.5">
@@ -698,8 +698,8 @@ export default function FlightBookings() {
                                             {pax.PassportNumber}
                                           </td>
                                           <td className="py-2 px-3 text-[11px] font-mono">
-                                            <div>Iss: {pax.PassportIssueDate || '—'}</div>
-                                            <div>Exp: {pax.PassportExpiryDate || '—'}</div>
+                                            <div>Iss: {pax.PassportIssueDate || '-'}</div>
+                                            <div>Exp: {pax.PassportExpiryDate || '-'}</div>
                                           </td>
                                           <td className="py-2 px-3 font-mono font-semibold text-[#1B3664]">
                                             {pax.TicketNumber || 'Not Issued'}
@@ -824,7 +824,7 @@ export default function FlightBookings() {
           <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden">
             <div className="bg-[#1D314F] text-white px-5 py-3.5 flex items-center justify-between">
               <h5 className="font-semibold text-sm">
-                Edit Booking — {editingBooking.AirGroupBookingID}
+                Edit Booking - {editingBooking.AirGroupBookingID}
               </h5>
               <button
                 onClick={() => setEditingBooking(null)}
@@ -944,7 +944,7 @@ export default function FlightBookings() {
           <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-2xl w-full overflow-hidden my-8">
             <div className="bg-[#1D314F] text-white px-5 py-3.5 flex items-center justify-between">
               <h5 className="font-semibold text-sm">
-                Edit Passenger Details — {editingPax.passenger.PassengerID}
+                Edit Passenger Details - {editingPax.passenger.PassengerID}
               </h5>
               <button onClick={() => setEditingPax(null)} className="text-white/75 hover:text-white cursor-pointer">
                 <X className="w-4 h-4" />

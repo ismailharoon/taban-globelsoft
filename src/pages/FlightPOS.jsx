@@ -511,7 +511,7 @@ export default function FlightPOS() {
 
   return (
     <div className="space-y-5">
-      {/* COMPACT HERO SEARCH BANNER — Taban Air Royal Navy */}
+      {/* COMPACT HERO SEARCH BANNER - Taban Air Royal Navy */}
       <div className="rounded-2xl bg-gradient-to-b from-[#0F172A] via-[#172847] to-[#1D314F] p-4 sm:p-6 shadow-md border border-slate-800 relative overflow-hidden">
         {/* Top Trip Type Pills */}
         <div className="relative z-10 flex flex-col items-center text-center mb-4">
@@ -609,7 +609,7 @@ export default function FlightPOS() {
                           <option value="ALL">All Cities (Any)</option>
                           {airportOptions.map((a) => (
                             <option key={a.code} value={a.code}>
-                              {a.city} ({a.code}) — {a.name}
+                              {a.city} ({a.code}) - {a.name}
                             </option>
                           ))}
                         </select>
@@ -646,7 +646,7 @@ export default function FlightPOS() {
                           <option value="ALL">All Cities (Any)</option>
                           {airportOptions.map((a) => (
                             <option key={a.code} value={a.code}>
-                              {a.city} ({a.code}) — {a.name}
+                              {a.city} ({a.code}) - {a.name}
                             </option>
                           ))}
                         </select>
@@ -705,7 +705,7 @@ export default function FlightPOS() {
                     >
                       {airportOptions.map((a) => (
                         <option key={a.code} value={a.code}>
-                          {a.code} — {a.city} ({a.name})
+                          {a.code} - {a.city} ({a.name})
                         </option>
                       ))}
                     </select>
@@ -746,7 +746,7 @@ export default function FlightPOS() {
                     >
                       {airportOptions.map((a) => (
                         <option key={a.code} value={a.code}>
-                          {a.code} — {a.city} ({a.name})
+                          {a.code} - {a.city} ({a.name})
                         </option>
                       ))}
                     </select>
@@ -981,7 +981,7 @@ export default function FlightPOS() {
         </form>
       </div>
 
-      {/* FLIGHT SEGMENT SEARCH RESULTS — ONLY DISPLAYED AFTER SEARCHING */}
+      {/* FLIGHT SEGMENT SEARCH RESULTS - ONLY DISPLAYED AFTER SEARCHING */}
       {hasSearched && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="bg-[#1D314F] text-white px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">

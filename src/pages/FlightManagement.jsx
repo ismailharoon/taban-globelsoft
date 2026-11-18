@@ -278,7 +278,7 @@ export default function FlightManagement() {
           <div className="bg-white rounded-2xl shadow-2xl border border-[#EE8200]/20 max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden">
             <div className="bg-[#EE8200] text-white px-6 py-4 flex items-center justify-between shrink-0">
               <h5 className="font-bold text-base">
-                {editingId ? `Edit Flight — ${editingId}` : 'Add New Flight Group'}
+                {editingId ? `Edit Flight - ${editingId}` : 'Add New Flight Group'}
               </h5>
               <button onClick={() => setShowEditor(false)} className="text-white/75 hover:text-white">
                 <X className="w-5 h-5" />
@@ -604,7 +604,7 @@ export default function FlightManagement() {
                       {segments.map((s) => (
                         <option key={s.AirGroupSegmentID} value={s.AirGroupSegmentID}>
                           {s.FlightNumber} | {s.DepartureIata} &rarr; {s.ArrivalIata} (
-                          {formatDateTime(s.DepartureDate)}) — {s.OperatingAirlineName}
+                          {formatDateTime(s.DepartureDate)}) - {s.OperatingAirlineName}
                         </option>
                       ))}
                     </select>
@@ -686,7 +686,7 @@ export default function FlightManagement() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl border border-[#EE8200]/20 max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
             <div className="bg-[#EE8200] text-white px-6 py-4 flex items-center justify-between shrink-0">
-              <h5 className="font-bold text-base">Flight Details — {detailsFlight.Title}</h5>
+              <h5 className="font-bold text-base">Flight Details - {detailsFlight.Title}</h5>
               <button
                 onClick={() => setDetailsFlight(null)}
                 className="text-white/75 hover:text-white"

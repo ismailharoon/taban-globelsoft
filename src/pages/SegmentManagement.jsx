@@ -567,7 +567,7 @@ export default function SegmentManagement() {
                 <th className="py-3 px-3">Flight Date & Time</th>
                 <th className="py-3 px-3">Cabin & Baggage</th>
                 <th className="py-3 px-3 text-center">Seats (Left / Total)</th>
-                <th className="py-3 px-3">Customer / Supplier Fare</th>
+                <th className="py-3 px-3">Fares</th>
                 <th className="py-3 px-4 text-right">Actions & Manifests</th>
               </tr>
             </thead>
@@ -590,7 +590,7 @@ export default function SegmentManagement() {
                           {seg.FlightNumber}
                         </div>
                         <div className="text-[11px] text-slate-500">
-                          {seg.OperatingAirlineName || seg.OperatingAirline || '—'}
+                          {seg.OperatingAirlineName || seg.OperatingAirline || '-'}
                         </div>
                       </td>
                       <td className="py-3 px-3">
@@ -660,13 +660,9 @@ export default function SegmentManagement() {
                         <div className="font-semibold text-emerald-700">
                           Return: {formatCurrencyPKR(Number(seg.ReturnAdultPrice) > 0 ? seg.ReturnAdultPrice : seg.AdultPrice)}
                         </div>
-                        {seg.HasTiers ? (
+                        {seg.HasTiers && (
                           <div className="text-[10px] text-slate-500 mt-0.5 leading-snug">
                             S1: {formatCurrencyPKR(seg.Tier1AdultPrice)} | S2: {formatCurrencyPKR(seg.Tier2AdultPrice)} | S3: {formatCurrencyPKR(seg.Tier3AdultPrice)} | S4: {formatCurrencyPKR(seg.Tier4AdultPrice ?? seg.Tier3AdultPrice)} | S5: {formatCurrencyPKR(seg.Tier5AdultPrice ?? seg.Tier3AdultPrice)}
-                          </div>
-                        ) : (
-                          <div className="text-slate-500">
-                            Sup: {formatCurrencyPKR(seg.AdultPriceSupplier)}
                           </div>
                         )}
                       </td>
@@ -743,7 +739,7 @@ export default function SegmentManagement() {
             <div className="bg-[#1D314F] text-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 shrink-0">
               <div>
                 <h5 className="font-semibold text-sm">
-                  Segment Details & Passenger Manifest — {detailsSegment.FlightNumber}
+                  Segment Details & Passenger Manifest - {detailsSegment.FlightNumber}
                 </h5>
                 <p className="text-[11px] text-white/75">
                   {detailsSegment.DepartureCity} ({detailsSegment.DepartureIata}) &rarr;{' '}
@@ -793,7 +789,7 @@ export default function SegmentManagement() {
                   <b>Flight Time:</b> {detailsSegment.FlightTime}
                 </div>
                 <div>
-                  <b>Airline Code:</b> {detailsSegment.OperatingAirline || '—'}
+                  <b>Airline Code:</b> {detailsSegment.OperatingAirline || '-'}
                 </div>
                 <div>
                   <b>Operating Airline:</b> {detailsSegment.OperatingAirlineName}
@@ -860,7 +856,7 @@ export default function SegmentManagement() {
                   <h5 className="font-semibold text-sm flex items-center gap-2">
                     <BarChart3 className="w-4 h-4 text-amber-400" />
                     <span>
-                      Slab Report — {slabReportSegment.FlightNumber} (
+                      Slab Report - {slabReportSegment.FlightNumber} (
                       {slabReportSegment.DepartureIata} &rarr; {slabReportSegment.ArrivalIata})
                     </span>
                   </h5>
@@ -969,8 +965,8 @@ export default function SegmentManagement() {
                               (Number(slabReportSegment.TotalSeats) || 0) - report.totalSeatedSold
                             )}
                           </td>
-                          <td className="py-2.5 px-3 text-right">—</td>
-                          <td className="py-2.5 px-3 text-right">—</td>
+                          <td className="py-2.5 px-3 text-right">-</td>
+                          <td className="py-2.5 px-3 text-right">-</td>
                           <td className="py-2.5 px-3 text-center">{report.totalInfants}</td>
                           <td className="py-2.5 px-3 text-right text-sm">
                             {formatCurrencyPKR(report.grandTotalRevenue)}
@@ -1077,7 +1073,7 @@ export default function SegmentManagement() {
           <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden">
             <div className="bg-[#1D314F] text-white px-5 py-3.5 flex items-center justify-between shrink-0">
               <h5 className="font-semibold text-sm">
-                {editingId ? `Edit Flight Segment — ${editingId}` : 'Add Flight Segment'}
+                {editingId ? `Edit Flight Segment - ${editingId}` : 'Add Flight Segment'}
               </h5>
               <button onClick={() => setShowEditor(false)} className="text-white/75 hover:text-white">
                 <X className="w-4 h-4" />
@@ -1096,7 +1092,7 @@ export default function SegmentManagement() {
                   >
                     {airports.map((a) => (
                       <option key={a.AirportCode} value={a.AirportCode}>
-                        {a.AirportCode} — {a.CityName}
+                        {a.AirportCode} - {a.CityName}
                       </option>
                     ))}
                   </select>
@@ -1120,7 +1116,7 @@ export default function SegmentManagement() {
                   >
                     {airports.map((a) => (
                       <option key={a.AirportCode} value={a.AirportCode}>
-                        {a.AirportCode} — {a.CityName}
+                        {a.AirportCode} - {a.CityName}
                       </option>
                     ))}
                   </select>
@@ -1343,7 +1339,7 @@ export default function SegmentManagement() {
                   { num: 2, title: 'Second Tier Seats (Slab 2)', badgeBg: 'bg-teal-700' },
                   { num: 3, title: 'Third Tier Seats (Slab 3)', badgeBg: 'bg-amber-600' },
                   { num: 4, title: 'Fourth Tier Seats (Slab 4)', badgeBg: 'bg-orange-600' },
-                  { num: 5, title: 'Remaining Seats (Slab 5 — Final Tier)', badgeBg: 'bg-rose-600' }
+                  { num: 5, title: 'Remaining Seats (Slab 5 - Final Tier)', badgeBg: 'bg-rose-600' }
                 ].map((slab) => {
                   const pfx = `Tier${slab.num}`;
                   return (
@@ -1486,49 +1482,6 @@ export default function SegmentManagement() {
                     </div>
                   );
                 })}
-
-                {/* Supplier Fares */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200">
-                  <div>
-                    <label className="block font-medium text-slate-600 mb-1">
-                      Adult Price (Supplier PKR)
-                    </label>
-                    <input
-                      type="number"
-                      value={form.AdultPriceSupplier}
-                      onChange={(e) =>
-                        setForm({ ...form, AdultPriceSupplier: Number(e.target.value) })
-                      }
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-mono focus:border-[#1B3664] focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-medium text-slate-600 mb-1">
-                      Child Price (Supplier PKR)
-                    </label>
-                    <input
-                      type="number"
-                      value={form.ChildPriceSupplier}
-                      onChange={(e) =>
-                        setForm({ ...form, ChildPriceSupplier: Number(e.target.value) })
-                      }
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-mono focus:border-[#1B3664] focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-medium text-slate-600 mb-1">
-                      Infant Price (Supplier PKR)
-                    </label>
-                    <input
-                      type="number"
-                      value={form.InfantPriceSupplier}
-                      onChange={(e) =>
-                        setForm({ ...form, InfantPriceSupplier: Number(e.target.value) })
-                      }
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white font-mono focus:border-[#1B3664] focus:outline-none"
-                    />
-                  </div>
-                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-200">

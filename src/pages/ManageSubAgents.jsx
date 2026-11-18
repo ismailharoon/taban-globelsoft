@@ -88,7 +88,7 @@ export default function ManageSubAgents() {
 
   const formatSlashDate = (isoOrDate) => {
     const d = isoOrDate ? new Date(isoOrDate) : new Date();
-    if (isNaN(d.getTime())) return '—';
+    if (isNaN(d.getTime())) return '-';
     const dd = String(d.getDate()).padStart(2, '0');
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const yyyy = d.getFullYear();
@@ -246,7 +246,7 @@ export default function ManageSubAgents() {
                         <td className="py-3 px-3">
                           <div className="font-semibold text-xs text-slate-900">{agent.CompanyName}</div>
                           <div className="text-[11px] text-[#1B3664] font-mono">
-                            {agent.SubDomain || '—'}
+                            {agent.SubDomain || '-'}
                           </div>
                         </td>
                         <td className="py-3 px-3">
@@ -983,7 +983,7 @@ export default function ManageSubAgents() {
               <div className="bg-[#1D314F] text-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <div>
                   <h5 className="font-semibold text-sm">
-                    BOOKLY Statement — {statementAgent.CompanyName}
+                    BOOKLY Statement - {statementAgent.CompanyName}
                   </h5>
                   <p className="text-[11px] text-white/75">
                     Agency ID: {statementAgent.SubCompanyID} • Live Account Ledger
@@ -1074,14 +1074,14 @@ export default function ManageSubAgents() {
                         <span className="font-semibold">ADDRESS:</span>{' '}
                         {[statementAgent.Address, statementAgent.City, statementAgent.Country]
                           .filter(Boolean)
-                          .join(', ') || '—'}
+                          .join(', ') || '-'}
                       </div>
                       <div className="text-[11px]">
                         <span className="font-semibold">Phone:</span>{' '}
-                        {statementAgent.MobileNumber || '—'}
+                        {statementAgent.MobileNumber || '-'}
                       </div>
                       <div className="text-[11px]">
-                        <span className="font-semibold">Email:</span> {statementAgent.Email || '—'}
+                        <span className="font-semibold">Email:</span> {statementAgent.Email || '-'}
                       </div>
                     </div>
                     <div className="sm:col-span-5 flex flex-col justify-center text-center divide-y divide-slate-400">

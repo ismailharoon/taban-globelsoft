@@ -172,7 +172,7 @@ export default function Layout({ children }) {
         />
       )}
 
-      {/* SIDEBAR — Deep Royal Navy #0F172A / #1B3664 */}
+      {/* SIDEBAR - Deep Royal Navy #0F172A / #1B3664 */}
       <aside
         className={`fixed lg:static inset-y-0 left-0 z-50 flex flex-col bg-[#0F172A] text-white border-r border-slate-800 transition-all duration-200 ${
           sidebarCollapsed ? 'w-16' : 'w-60'

@@ -271,7 +271,7 @@ export default function ManageAdmins() {
                         {adm.AccountStatus || 'Enable'}
                       </span>
                     </td>
-                    <td className="py-3 px-3 text-slate-500">{adm.Created || '—'}</td>
+                    <td className="py-3 px-3 text-slate-500">{adm.Created || '-'}</td>
                     <td className="py-3 px-4 text-right">
                       <div className="inline-flex items-center justify-end gap-1.5">
                         {adm.TwoFactorEnrolled && (
@@ -333,7 +333,7 @@ export default function ManageAdmins() {
               <div>
                 <h5 className="font-semibold text-sm">
                   {editingAdmin
-                    ? `Edit Admin — ${editingAdmin.FullName}`
+                    ? `Edit Admin - ${editingAdmin.FullName}`
                     : 'Create New Admin Account'}
                 </h5>
                 <p className="text-[11px] text-white/75">

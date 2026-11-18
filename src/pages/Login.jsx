@@ -78,7 +78,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-12 bg-[#F8FAFC]">
-      {/* Left Hero Panel — Taban Air Royal Navy */}
+      {/* Left Hero Panel - Taban Air Royal Navy */}
       <div className="hidden lg:flex lg:col-span-7 bg-gradient-to-br from-[#0B1528] via-[#15284B] to-[#1D314F] text-white p-10 flex-col justify-between relative overflow-hidden">
         <div className="relative z-10">
           <div className="inline-flex items-center gap-3 px-3.5 py-2 rounded-xl bg-white/10 border border-white/15">

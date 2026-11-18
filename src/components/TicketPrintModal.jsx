@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { Printer, X } from 'lucide-react';
 
 function extractTime(dtStr) {
-  if (!dtStr) return '—';
+  if (!dtStr) return '-';
   const d = new Date(dtStr);
   if (isNaN(d.getTime())) {
     const parts = String(dtStr).split('T');
@@ -12,7 +12,7 @@ function extractTime(dtStr) {
 }
 
 function extractShortDate(dtStr) {
-  if (!dtStr) return '—';
+  if (!dtStr) return '-';
   const d = new Date(dtStr);
   if (isNaN(d.getTime())) return dtStr;
   return d.toLocaleDateString('en-GB', {
@@ -24,7 +24,7 @@ function extractShortDate(dtStr) {
 }
 
 function formatDobShort(dtStr) {
-  if (!dtStr) return '—';
+  if (!dtStr) return '-';
   const d = new Date(dtStr);
   if (isNaN(d.getTime())) return dtStr;
   return d.toLocaleDateString('en-GB', {
@@ -130,7 +130,7 @@ export default function TicketPrintModal({ booking, onClose }) {
       <html>
       <head>
         <meta charset="utf-8" />
-        <title>Electronic Ticket Receipt — ${booking.PNR}</title>
+        <title>Electronic Ticket Receipt - ${booking.PNR}</title>
         <style>
           * { box-sizing: border-box; }
           body {
@@ -174,7 +174,7 @@ export default function TicketPrintModal({ booking, onClose }) {
           <div className="flex items-center gap-3">
             <div>
               <h3 className="font-semibold text-sm tracking-wide">
-                International E-Ticket &amp; Boarding Itinerary — {booking.PNR}
+                International E-Ticket &amp; Boarding Itinerary - {booking.PNR}
               </h3>
               <p className="text-[11px] text-slate-400">
                 Booking Ref: {booking.AirGroupBookingID} • Status: {booking.ApprovalStatus}
@@ -335,7 +335,7 @@ export default function TicketPrintModal({ booking, onClose }) {
               style={{
                 display: 'grid',
                 gridTemplateColumns:
-                  !isIssued && booking.BookingTimeLimit && booking.BookingTimeLimit !== '—'
+                  !isIssued && booking.BookingTimeLimit && booking.BookingTimeLimit !== '-'
                     ? 'repeat(4, 1fr)'
                     : 'repeat(3, 1fr)',
                 border: '1px solid #cbd5e1',
@@ -367,7 +367,7 @@ export default function TicketPrintModal({ booking, onClose }) {
                 style={{
                   padding: '10px 14px',
                   borderRight:
-                    !isIssued && booking.BookingTimeLimit && booking.BookingTimeLimit !== '—'
+                    !isIssued && booking.BookingTimeLimit && booking.BookingTimeLimit !== '-'
                       ? '1px solid #e2e8f0'
                       : 'none'
                 }}
@@ -380,7 +380,7 @@ export default function TicketPrintModal({ booking, onClose }) {
                 </div>
               </div>
 
-              {!isIssued && booking.BookingTimeLimit && booking.BookingTimeLimit !== '—' && (
+              {!isIssued && booking.BookingTimeLimit && booking.BookingTimeLimit !== '-' && (
                 <div style={{ padding: '10px 14px' }}>
                   <div style={{ fontSize: '9.5px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                     Ticketing Time Limit

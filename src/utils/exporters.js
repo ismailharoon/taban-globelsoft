@@ -4,7 +4,7 @@ export function formatCurrencyPKR(amount) {
 }
 
 export function formatDateTime(dtStr) {
-  if (!dtStr) return '—';
+  if (!dtStr) return '-';
   const d = new Date(dtStr);
   if (isNaN(d.getTime())) return dtStr;
   return d.toLocaleString('en-GB', {
@@ -18,7 +18,7 @@ export function formatDateTime(dtStr) {
 }
 
 export function formatShortDate(dtStr) {
-  if (!dtStr) return '—';
+  if (!dtStr) return '-';
   const d = new Date(dtStr);
   if (isNaN(d.getTime())) return dtStr;
   return d.toLocaleDateString('en-GB', {
@@ -263,10 +263,10 @@ const REFERENCE_EXCEL_STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standal
 /**
  * Excel Export matching reference file: KHI-IKA-27OCT26-7212.xlsx
  * Includes exact colors/fills:
- *  - Row 1 (A1:D1): Grey (#DCDCDC) fill — From | To | Flight No | Flight Date
- *  - Row 2 (A2:D2): Yellow (#FFFF00) fill — KHI | IKA | 7212 | 27-Oct (numFmtId=16 d-mmm)
- *  - Row 3 (A3:R3): Grey (#DCDCDC) fill — R | Action | Age Type (A,C,I) | ... | Cabin
- *  - Row 4+ (A4:R...): Blue (#8DB4E2) fill — Passenger rows
+ *  - Row 1 (A1:D1): Grey (#DCDCDC) fill - From | To | Flight No | Flight Date
+ *  - Row 2 (A2:D2): Yellow (#FFFF00) fill - KHI | IKA | 7212 | 27-Oct (numFmtId=16 d-mmm)
+ *  - Row 3 (A3:R3): Grey (#DCDCDC) fill - R | Action | Age Type (A,C,I) | ... | Cabin
+ *  - Row 4+ (A4:R...): Blue (#8DB4E2) fill - Passenger rows
  */
 export function downloadExcelManifest(segment, passengers = []) {
   // Only export passengers from issued tickets (if BookingStatus is provided)
@@ -934,7 +934,7 @@ export function downloadSegmentSlabReportExcel(segment, report) {
   // Row 1: Sector Header
   xmlRows.push(
     `<row r="${r}" ht="20" customHeight="1">${[
-      makeStringCell(`A${r}`, 2, `BOOKLY — SECTOR SLAB REPORT`),
+      makeStringCell(`A${r}`, 2, `BOOKLY - SECTOR SLAB REPORT`),
       makeStringCell(`B${r}`, 2, ''),
       makeStringCell(`C${r}`, 2, ''),
       makeStringCell(`D${r}`, 2, ''),
@@ -988,8 +988,8 @@ export function downloadSegmentSlabReportExcel(segment, report) {
       makeNumberCell(`B${r}`, 3, segment?.TotalSeats || 0),
       makeNumberCell(`C${r}`, 3, report?.totalSeatedSold || 0),
       makeNumberCell(`D${r}`, 3, Math.max(0, (Number(segment?.TotalSeats) || 0) - (report?.totalSeatedSold || 0))),
-      makeStringCell(`E${r}`, 3, '—'),
-      makeStringCell(`F${r}`, 3, '—'),
+      makeStringCell(`E${r}`, 3, '-'),
+      makeStringCell(`F${r}`, 3, '-'),
       makeNumberCell(`G${r}`, 3, report?.totalInfants || 0),
       makeNumberCell(`H${r}`, 7, report?.grandTotalRevenue || 0)
     ].join('')}</row>`

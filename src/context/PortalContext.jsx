@@ -1027,7 +1027,7 @@ export function PortalProvider({ children }) {
       ? firstSeg.DepartureDate.replace('T', ' ')
       : flight?.TimeLimit
       ? flight.TimeLimit.replace('T', ' ')
-      : '—';
+      : '-';
 
     const newBooking = {
       AirGroupBookingID: bookingId,
