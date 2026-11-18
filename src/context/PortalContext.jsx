@@ -842,15 +842,31 @@ export function PortalProvider({ children }) {
       MobileNumber,
       Remarks,
       Passengers = [],
+      ExpectedTotalPrice,
       BookingChannelName = 'Flight POS Desk'
     } = bookingPayload;
 
+    // Fetch latest state from server right before booking so concurrent bookings within 1-2s use live seat counts & rates
+    let latestDb = dbState;
+    try {
+      const res = await fetch('/api/db', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.ok && data.state) {
+          latestDb = data.state;
+        }
+      }
+    } catch {
+      // Fallback to local state if offline
+    }
+    const liveEnriched = computeEnriched(latestDb);
+
     const selectedSegments = (SegmentIDs || [])
-      .map((id) => (enriched.segments || []).find((s) => s.AirGroupSegmentID === id))
+      .map((id) => (liveEnriched.segments || []).find((s) => s.AirGroupSegmentID === id))
       .filter(Boolean);
 
     const flight = AirGroupID
-      ? (dbState.flights || []).find((f) => f.AirGroupID === AirGroupID)
+      ? (latestDb.flights || []).find((f) => f.AirGroupID === AirGroupID)
       : null;
 
     if (selectedSegments.length === 0 && !flight) {
@@ -861,7 +877,7 @@ export function PortalProvider({ children }) {
 
     const agent =
       isSubAgent && effectiveSubCompanyID && effectiveSubCompanyID !== 'DIRECT'
-        ? (dbState.subAgents || []).find((a) => a.SubCompanyID === effectiveSubCompanyID)
+        ? (latestDb.subAgents || []).find((a) => a.SubCompanyID === effectiveSubCompanyID)
         : null;
 
     const resolvedCompanyId = agent ? agent.SubCompanyID : isSubAgent ? user.SubCompanyID : 'DIRECT';
@@ -876,11 +892,23 @@ export function PortalProvider({ children }) {
     const adults = Passengers.filter((p) => p.PassengerType === 'Adult').length;
     const children = Passengers.filter((p) => p.PassengerType === 'Child').length;
     const infants = Passengers.filter((p) => p.PassengerType === 'Infant').length;
+    const seatedNeeded = adults + children;
 
-    if (isSubAgent && adults + children > 9) {
+    if (isSubAgent && seatedNeeded > 9) {
       throw new Error(
         'Sub-Agents can book a maximum of 9 passengers (Adults + Children) per booking.'
       );
+    }
+
+    // Check live seat availability on each selected segment
+    for (const seg of selectedSegments) {
+      const left = Number(seg.SeatsLeft) || 0;
+      if (left < seatedNeeded) {
+        setDbState(latestDb);
+        throw new Error(
+          `Only ${left} seat(s) left on ${seg.FlightNumber} (${seg.DepartureIata} → ${seg.ArrivalIata}). Cannot book ${seatedNeeded} seats.`
+        );
+      }
     }
 
     let totalPrice = 0;
@@ -901,6 +929,18 @@ export function PortalProvider({ children }) {
         adults * (Number(flight.AdultPrice) || 0) +
         children * (Number(flight.ChildPrice) || 0) +
         infants * (Number(flight.InfantPrice) || 0);
+    }
+
+    // If fare changed due to another concurrent booking, update UI and ask user to confirm the new fare
+    if (
+      ExpectedTotalPrice !== undefined &&
+      Number(ExpectedTotalPrice) > 0 &&
+      Number(ExpectedTotalPrice) !== totalPrice
+    ) {
+      setDbState(latestDb);
+      throw new Error(
+        `Fare updated to PKR ${totalPrice.toLocaleString('en-US')} based on current seat availability. Please review the updated fare and confirm again.`
+      );
     }
 
     const firstSeg = selectedSegments[0];
@@ -1007,9 +1047,11 @@ export function PortalProvider({ children }) {
     };
 
     // Booking does NOT deduct agent credit balance; deduction happens only on Ticket Issue
-    updateLocalDb((draft) => {
-      draft.bookings.unshift(newBooking);
-      return draft;
+    // Merge onto latestDb so concurrent bookings from other agents are preserved
+    updateLocalDb(() => {
+      const merged = JSON.parse(JSON.stringify(latestDb));
+      merged.bookings = [newBooking, ...(merged.bookings || [])];
+      return merged;
     });
 
     addToast(`Booking Created Successfully. PNR : ${pnr}`, 'success');

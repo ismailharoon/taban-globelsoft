@@ -75,7 +75,8 @@ export default function FlightPOS() {
   const [printBooking, setPrintBooking] = useState(null);
   const [confirmState, setConfirmState] = useState(null);
 
-  const askConfirm = ({ title, message, confirmLabel, variant = 'navy', action }) => {
+  const askConfirm = ({ title, message, confirmLabel, variant = 'navy', action, onConfirm }) => {
+    const fn = action || onConfirm;
     setConfirmState({
       title,
       message,
@@ -83,7 +84,7 @@ export default function FlightPOS() {
       variant,
       onConfirm: async () => {
         setConfirmState(null);
-        await action();
+        if (fn) await fn();
       }
     });
   };
@@ -483,6 +484,7 @@ export default function FlightPOS() {
           MobileNumber: mobile || selectedAgent?.MobileNumber || '',
           Remarks: promoCode ? `${remarks ? remarks + ' | ' : ''}Promo: ${promoCode}` : remarks,
           Passengers: passengers,
+          ExpectedTotalPrice: fareBreakdown.grandTotal,
           BookingChannelName: 'Bookly POS Search'
         });
         setSelectedSegmentIds([]);
