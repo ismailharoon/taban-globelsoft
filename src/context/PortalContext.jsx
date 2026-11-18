@@ -12,7 +12,7 @@ import {
 } from '../utils/security';
 
 const PortalContext = createContext(null);
-const STORAGE_KEY = 'ota_portal_clean_v1';
+const STORAGE_KEY = 'bookly_prod_db_v1';
 
 export const ALL_ADMIN_PERMISSIONS = {
   dashboard: true,
@@ -26,10 +26,11 @@ export const ALL_ADMIN_PERMISSIONS = {
 
 const DEFAULT_MASTER_ADMIN = {
   AdminID: 'ADM-MASTER',
-  LoginID: 'test',
-  PassCode: 'test123',
-  FullName: 'Master Admin',
-  Email: 'admin@bookly.com',
+  LoginID: 'attaullah',
+  PassCode:
+    'sha256$a1b2c3d4e5f60718$173bb75985638873dd0088f91bdfedbf3868339d989e6d8b08d4ad45c1c78227',
+  FullName: 'Attaullah',
+  Email: 'info@kynexasoft.com',
   Designation: 'Master Administrator',
   Role: 'Master Admin',
   AccountStatus: 'Enable',
@@ -37,10 +38,11 @@ const DEFAULT_MASTER_ADMIN = {
   Created: 'System Default'
 };
 
-// Purge any old demo storage keys so existing browsers immediately see a fresh state
+// Purge any old demo/testing storage keys so existing browsers immediately see a fresh state
 try {
   localStorage.removeItem('taban_executive_db_v1');
   localStorage.removeItem('taban_executive_db_v2');
+  localStorage.removeItem('ota_portal_clean_v1');
 } catch {}
 
 function formatNow() {
@@ -485,7 +487,10 @@ export function PortalProvider({ children }) {
       const saved = localStorage.getItem('ota_portal_user');
       if (!saved) return null;
       const parsed = JSON.parse(saved);
-      if (parsed?.LoginID?.toLowerCase() === 'atta') {
+      if (
+        parsed?.LoginID?.toLowerCase() === 'atta' ||
+        parsed?.LoginID?.toLowerCase() === 'test'
+      ) {
         localStorage.removeItem('ota_portal_user');
         return null;
       }
@@ -1055,7 +1060,7 @@ export function PortalProvider({ children }) {
       TripType: TripType || (selectedSegments.length > 1 ? 'Round Trip' : 'One Way'),
       SubCompanyID: resolvedCompanyId,
       SubCompanyName: resolvedCompanyName,
-      BookedByLoginID: user?.LoginID || 'test',
+      BookedByLoginID: user?.LoginID || 'attaullah',
       BookingChannelName,
       PNR: pnr,
       PNR_AIRLINE: flight?.PNR_AIRLINE || firstSeg?.FlightNumber || pnr,
@@ -1119,7 +1124,7 @@ export function PortalProvider({ children }) {
   };
 
   const approveBooking = async (id) => {
-    const loginId = user?.LoginID || 'test';
+    const loginId = user?.LoginID || 'attaullah';
     updateLocalDb((draft) => {
       const booking = draft.bookings.find((b) => b.AirGroupBookingID === id);
       if (booking) {
@@ -1133,7 +1138,7 @@ export function PortalProvider({ children }) {
   };
 
   const rejectBooking = async (id) => {
-    const loginId = user?.LoginID || 'test';
+    const loginId = user?.LoginID || 'attaullah';
     updateLocalDb((draft) => {
       const booking = draft.bookings.find((b) => b.AirGroupBookingID === id);
       if (booking) {
@@ -1147,7 +1152,7 @@ export function PortalProvider({ children }) {
   };
 
   const issueTicket = async (id) => {
-    const loginId = user?.LoginID || 'test';
+    const loginId = user?.LoginID || 'attaullah';
     const existingBooking = (dbState.bookings || []).find((b) => b.AirGroupBookingID === id);
     const enrichedBooking = (enriched.bookings || []).find((b) => b.AirGroupBookingID === id);
     if (!existingBooking) throw new Error('Booking not found.');
@@ -1251,7 +1256,7 @@ export function PortalProvider({ children }) {
     if (!String(reason).trim()) {
       throw new Error('Void Remarks are required to void a booking.');
     }
-    const loginId = user?.LoginID || 'test';
+    const loginId = user?.LoginID || 'attaullah';
     updateLocalDb((draft) => {
       const booking = draft.bookings.find((b) => b.AirGroupBookingID === id);
       if (booking) {

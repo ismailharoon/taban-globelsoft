@@ -271,7 +271,7 @@ export default function Layout({ children }) {
             className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium bg-[#1B3664] text-white hover:bg-[#152a4f] transition cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5 shrink-0" />
-            {!sidebarCollapsed && <span>Sign Out ({user?.LoginID || 'test'})</span>}
+            {!sidebarCollapsed && <span>Sign Out ({user?.LoginID || 'attaullah'})</span>}
           </button>
         </div>
       </aside>
@@ -457,7 +457,7 @@ export default function Layout({ children }) {
                 </div>
                 <div className="hidden sm:block text-left">
                   <div className="text-xs font-semibold text-slate-800 leading-none">
-                    {user?.LoginID || 'test'}
+                    {user?.LoginID || 'attaullah'}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">
                     {user?.AccountType || 'Administrator'}

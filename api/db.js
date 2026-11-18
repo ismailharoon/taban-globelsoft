@@ -11,7 +11,29 @@ const MONGO_URI =
 
 const DB_NAME = process.env.MONGODB_DB || 'bookly_ota_db';
 const COLLECTION_NAME = 'portal_state';
-const STATE_DOC_ID = 'bookly_main_state_v1';
+const STATE_DOC_ID = 'bookly_prod_state_v1';
+
+const DEFAULT_MASTER_ADMIN = {
+  AdminID: 'ADM-MASTER',
+  LoginID: 'attaullah',
+  PassCode:
+    'sha256$a1b2c3d4e5f60718$173bb75985638873dd0088f91bdfedbf3868339d989e6d8b08d4ad45c1c78227',
+  FullName: 'Attaullah',
+  Email: 'info@kynexasoft.com',
+  Designation: 'Master Administrator',
+  Role: 'Master Admin',
+  AccountStatus: 'Enable',
+  Permissions: {
+    dashboard: true,
+    searchFlight: true,
+    bookings: true,
+    bookingActions: true,
+    segments: true,
+    flights: true,
+    subAgents: true
+  },
+  Created: 'System Default'
+};
 
 let cachedClient = null;
 let cachedDb = null;
@@ -91,7 +113,7 @@ async function syncNormalizedCollections(db, state, deletedSet) {
   }
 }
 
-async function loadOrInitState(collection) {
+async function loadOrInitState(collection, db) {
   let doc = await collection.findOne({ _id: STATE_DOC_ID });
   if (!doc) {
     const fresh = {
@@ -104,11 +126,28 @@ async function loadOrInitState(collection) {
       subAgents: [],
       bookings: [],
       creditTransactions: [],
-      adminUsers: [],
+      adminUsers: [DEFAULT_MASTER_ADMIN],
       _deletedIds: [],
       updatedAt: new Date().toISOString()
     };
     await collection.insertOne(fresh);
+    // Clean old testing records from normalized collections on fresh production state initialization
+    if (db) {
+      try {
+        await Promise.all([
+          db.collection('segments').deleteMany({}),
+          db.collection('sub_agents').deleteMany({}),
+          db.collection('bookings').deleteMany({}),
+          db.collection('credit_transactions').deleteMany({}),
+          db.collection('admin_users').deleteMany({})
+        ]);
+        await db.collection('admin_users').insertOne({
+          ...DEFAULT_MASTER_ADMIN,
+          _id: DEFAULT_MASTER_ADMIN.AdminID,
+          updatedAt: fresh.updatedAt
+        });
+      } catch {}
+    }
     doc = fresh;
   }
   return doc;
@@ -129,7 +168,7 @@ export default async function handler(req, res) {
     const collection = db.collection(COLLECTION_NAME);
 
     if (req.method === 'GET') {
-      const state = await loadOrInitState(collection);
+      const state = await loadOrInitState(collection, db);
       return res.status(200).json({
         ok: true,
         state: {
@@ -150,7 +189,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST' || req.method === 'PUT') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
-      const current = await loadOrInitState(collection);
+      const current = await loadOrInitState(collection, db);
 
       const combinedDeletedIds = Array.from(
         new Set([...(current._deletedIds || []), ...(Array.isArray(body._deletedIds) ? body._deletedIds : [])])
