@@ -1153,11 +1153,6 @@ export default function FlightPOS() {
                         <span className="text-[10px] font-semibold text-emerald-700">
                           {seatsLeft} Seats Left
                         </span>
-                        {seg.HasTiers && (
-                          <span className="text-[10px] font-semibold text-[#1B3664] mt-0.5">
-                            Slab {seg.ActiveTier}: {seg.ActiveTierSeatsLeft} left at this fare
-                          </span>
-                        )}
                       </div>
 
                       <div className="text-right">

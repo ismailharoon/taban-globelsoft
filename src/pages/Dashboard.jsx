@@ -185,9 +185,9 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left border-collapse text-sm">
                   <thead>
-                    <tr className="bg-[#1D314F] text-white text-[11px] font-semibold uppercase tracking-wider">
+                    <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-xs font-semibold uppercase tracking-wider">
                       <th className="py-2.5 px-3 w-8"></th>
                       <th className="py-2.5 px-3">PNR / Booking ID</th>
                       <th className="py-2.5 px-3">Flight Sector</th>
