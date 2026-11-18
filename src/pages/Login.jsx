@@ -11,6 +11,7 @@ import {
   Plane
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
+import BooklyLogo from '../components/BooklyLogo';
 
 export default function Login() {
   const { login, verifyOtpAndFinishLogin, addToast } = usePortal();
@@ -90,11 +91,16 @@ export default function Login() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/80 to-transparent" />
 
-        <div className="relative z-10 flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center">
-            <Plane className="w-4 h-4 text-white" />
+        <div className="relative z-10 flex items-center gap-3">
+          <BooklyLogo size={42} />
+          <div>
+            <span className="font-display font-bold text-xl tracking-wide block leading-none">
+              BOOKLY
+            </span>
+            <span className="text-[11px] text-slate-300 tracking-wider uppercase">
+              B2B Aviation Portal
+            </span>
           </div>
-          <span className="font-display font-bold text-lg tracking-wide">BOOKLY</span>
         </div>
 
         <div className="relative z-10 max-w-md my-auto">
@@ -125,11 +131,16 @@ export default function Login() {
         <div className="hidden lg:block" />
 
         <div className="relative z-10 w-full max-w-md mx-auto bg-white/95 backdrop-blur-xs rounded-2xl border border-slate-200/80 shadow-sm p-7 sm:p-9">
-          <div className="mb-7">
-            <h2 className="font-display font-semibold text-2xl text-slate-900">Sign In</h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Enter your credentials to access the portal
-            </p>
+          <div className="mb-7 flex items-center gap-3.5">
+            <BooklyLogo size={44} />
+            <div>
+              <h2 className="font-display font-semibold text-2xl text-slate-900 leading-tight">
+                Sign In
+              </h2>
+              <p className="text-sm text-slate-500 mt-0.5">
+                Enter your credentials to access the portal
+              </p>
+            </div>
           </div>
 
           {errorMsg && (

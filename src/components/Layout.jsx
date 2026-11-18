@@ -23,6 +23,7 @@ import {
   KeyRound
 } from 'lucide-react';
 import { usePortal } from '../context/PortalContext';
+import BooklyLogo from './BooklyLogo';
 import { formatCurrencyPKR } from '../utils/exporters';
 import { validateStrongPassword } from '../utils/security';
 
@@ -179,17 +180,16 @@ export default function Layout({ children }) {
         } ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         {/* Brand Header */}
-        <div className="h-14 px-4 flex items-center justify-between border-b border-slate-800 bg-[#0B1221]">
+        <div className="h-14 px-3.5 flex items-center justify-between border-b border-slate-800 bg-[#0B1221]">
           <div className="flex items-center gap-2.5 overflow-hidden">
-            {!sidebarCollapsed ? (
+            <BooklyLogo size={34} />
+            {!sidebarCollapsed && (
               <div className="leading-tight">
                 <div className="font-display font-semibold text-sm tracking-wide text-white flex items-center gap-1.5">
                   BOOKLY
                 </div>
                 <p className="text-[10px] text-slate-400 truncate">B2B Booking &amp; Inventory</p>
               </div>
-            ) : (
-              <div className="font-display font-bold text-xs text-white tracking-wider">BK</div>
             )}
           </div>
           <button
