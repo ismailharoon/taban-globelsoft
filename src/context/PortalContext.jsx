@@ -1266,6 +1266,7 @@ export function PortalProvider({ children }) {
 
   const deleteBooking = async (id) => {
     updateLocalDb((draft) => {
+      draft._deletedIds = Array.from(new Set([...(draft._deletedIds || []), id]));
       draft.bookings = draft.bookings.filter((b) => b.AirGroupBookingID !== id);
       return draft;
     });
@@ -1353,6 +1354,7 @@ export function PortalProvider({ children }) {
 
   const deleteFlight = async (id) => {
     updateLocalDb((draft) => {
+      draft._deletedIds = Array.from(new Set([...(draft._deletedIds || []), id]));
       draft.flights = draft.flights.filter((f) => f.AirGroupID !== id);
       return draft;
     });
@@ -1387,6 +1389,7 @@ export function PortalProvider({ children }) {
 
   const deleteSegment = async (id) => {
     updateLocalDb((draft) => {
+      draft._deletedIds = Array.from(new Set([...(draft._deletedIds || []), id]));
       draft.segments = draft.segments.filter((s) => s.AirGroupSegmentID !== id);
       return draft;
     });
@@ -1542,6 +1545,7 @@ export function PortalProvider({ children }) {
 
   const deleteSubAgent = async (id) => {
     updateLocalDb((draft) => {
+      draft._deletedIds = Array.from(new Set([...(draft._deletedIds || []), id]));
       draft.subAgents = draft.subAgents.filter((a) => a.SubCompanyID !== id);
       return draft;
     });
@@ -1799,7 +1803,7 @@ export function PortalProvider({ children }) {
       }
       return draft;
     });
-    addToast('Password changed and hashed (SHA-256) successfully.', 'success');
+    addToast('Password updated successfully.', 'success');
   };
 
   const resetAdmin2FA = async (adminId) => {
@@ -1833,6 +1837,7 @@ export function PortalProvider({ children }) {
       throw new Error('Master Admin account cannot be deleted.');
     }
     updateLocalDb((draft) => {
+      draft._deletedIds = Array.from(new Set([...(draft._deletedIds || []), adminId]));
       draft.adminUsers = (draft.adminUsers || []).filter((a) => a.AdminID !== adminId);
       return draft;
     });

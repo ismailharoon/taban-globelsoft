@@ -26,7 +26,7 @@ async function getDatabase() {
     return cachedDb;
   }
   const client = new MongoClient(MONGO_URI, {
-    maxPoolSize: 5,
+    maxPoolSize: 10,
     serverSelectionTimeoutMS: 8000
   });
   await client.connect();
@@ -34,6 +34,61 @@ async function getDatabase() {
   cachedClient = client;
   cachedDb = db;
   return db;
+}
+
+// Merge incoming array with existing DB array by primary key so concurrent creates from other agents are never lost
+function mergeArrayByKey(existingArr = [], incomingArr, idKey, deletedSet, appendOnly = false) {
+  if (!Array.isArray(incomingArr)) {
+    return Array.isArray(existingArr) ? existingArr : [];
+  }
+  const incomingIds = new Set(
+    incomingArr.map((item) => item && item[idKey]).filter(Boolean)
+  );
+  const preservedConcurrent = (Array.isArray(existingArr) ? existingArr : []).filter((item) => {
+    const id = item && item[idKey];
+    if (!id) return false;
+    if (deletedSet.has(id)) return false;
+    if (incomingIds.has(id)) return false;
+    if (appendOnly) return true;
+    // Preserve concurrent records created recently by another user/session
+    return true;
+  });
+  return [...incomingArr.filter((item) => !deletedSet.has(item?.[idKey])), ...preservedConcurrent];
+}
+
+// Sync normalized collections in MongoDB for enterprise reporting, backup, and scalability
+async function syncNormalizedCollections(db, state, deletedSet) {
+  try {
+    const syncCol = async (colName, items = [], idKey) => {
+      const col = db.collection(colName);
+      if (deletedSet.size > 0) {
+        await col.deleteMany({ _id: { $in: Array.from(deletedSet) } });
+      }
+      if (!Array.isArray(items) || items.length === 0) return;
+      const ops = items
+        .filter((it) => it && it[idKey])
+        .map((it) => ({
+          updateOne: {
+            filter: { _id: it[idKey] },
+            update: { $set: { ...it, _id: it[idKey], updatedAt: state.updatedAt } },
+            upsert: true
+          }
+        }));
+      if (ops.length > 0) {
+        await col.bulkWrite(ops, { ordered: false });
+      }
+    };
+
+    await Promise.all([
+      syncCol('segments', state.segments, 'AirGroupSegmentID'),
+      syncCol('sub_agents', state.subAgents, 'SubCompanyID'),
+      syncCol('bookings', state.bookings, 'AirGroupBookingID'),
+      syncCol('credit_transactions', state.creditTransactions, 'TransactionID'),
+      syncCol('admin_users', state.adminUsers, 'AdminID')
+    ]);
+  } catch (syncErr) {
+    console.warn('Normalized collection sync warning:', syncErr.message);
+  }
 }
 
 async function loadOrInitState(collection) {
@@ -50,6 +105,7 @@ async function loadOrInitState(collection) {
       bookings: [],
       creditTransactions: [],
       adminUsers: [],
+      _deletedIds: [],
       updatedAt: new Date().toISOString()
     };
     await collection.insertOne(fresh);
@@ -86,6 +142,7 @@ export default async function handler(req, res) {
           bookings: state.bookings || [],
           creditTransactions: state.creditTransactions || [],
           adminUsers: state.adminUsers || [],
+          _deletedIds: state._deletedIds || [],
           updatedAt: state.updatedAt
         }
       });
@@ -95,20 +152,28 @@ export default async function handler(req, res) {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
       const current = await loadOrInitState(collection);
 
+      const combinedDeletedIds = Array.from(
+        new Set([...(current._deletedIds || []), ...(Array.isArray(body._deletedIds) ? body._deletedIds : [])])
+      ).slice(-500);
+      const deletedSet = new Set(combinedDeletedIds);
+
       const nextState = {
         airports: initialSeedData.airports,
         airlines: Array.isArray(body.airlines) ? body.airlines : current.airlines || initialSeedData.airlines,
         suppliers: Array.isArray(body.suppliers) ? body.suppliers : current.suppliers || initialSeedData.suppliers,
-        segments: Array.isArray(body.segments) ? body.segments : current.segments || [],
-        flights: Array.isArray(body.flights) ? body.flights : current.flights || [],
-        subAgents: Array.isArray(body.subAgents) ? body.subAgents : current.subAgents || [],
-        bookings: Array.isArray(body.bookings) ? body.bookings : current.bookings || [],
-        creditTransactions: Array.isArray(body.creditTransactions)
-          ? body.creditTransactions
-          : current.creditTransactions || [],
-        adminUsers: Array.isArray(body.adminUsers)
-          ? body.adminUsers
-          : current.adminUsers || [],
+        segments: mergeArrayByKey(current.segments, body.segments, 'AirGroupSegmentID', deletedSet),
+        flights: mergeArrayByKey(current.flights, body.flights, 'AirGroupID', deletedSet),
+        subAgents: mergeArrayByKey(current.subAgents, body.subAgents, 'SubCompanyID', deletedSet),
+        bookings: mergeArrayByKey(current.bookings, body.bookings, 'AirGroupBookingID', deletedSet),
+        creditTransactions: mergeArrayByKey(
+          current.creditTransactions,
+          body.creditTransactions,
+          'TransactionID',
+          deletedSet,
+          true
+        ),
+        adminUsers: mergeArrayByKey(current.adminUsers, body.adminUsers, 'AdminID', deletedSet),
+        _deletedIds: combinedDeletedIds,
         updatedAt: new Date().toISOString()
       };
 
@@ -117,6 +182,9 @@ export default async function handler(req, res) {
         { $set: nextState },
         { upsert: true }
       );
+
+      // Mirror records into dedicated MongoDB collections
+      await syncNormalizedCollections(db, nextState, deletedSet);
 
       return res.status(200).json({
         ok: true,
