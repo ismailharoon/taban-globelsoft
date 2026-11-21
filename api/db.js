@@ -11,14 +11,14 @@ const MONGO_URI =
 
 const DB_NAME = process.env.MONGODB_DB || 'bookly_ota_db';
 const COLLECTION_NAME = 'portal_state';
-const STATE_DOC_ID = 'bookly_prod_state_v1';
+const STATE_DOC_ID = 'bookly_live_state_v2';
 
 const DEFAULT_MASTER_ADMIN = {
   AdminID: 'ADM-MASTER',
-  LoginID: 'attaullah',
+  LoginID: 'shamil_zafar',
   PassCode:
-    'sha256$a1b2c3d4e5f60718$173bb75985638873dd0088f91bdfedbf3868339d989e6d8b08d4ad45c1c78227',
-  FullName: 'Attaullah',
+    'sha256$d4e5f6a7b8c90123$0391b59337a448298bf00cbfecdaa914abad46ae81f70699699b3db853a4285a',
+  FullName: 'Shamil Zafar',
   Email: 'info@kynexasoft.com',
   Designation: 'Master Administrator',
   Role: 'Master Admin',
